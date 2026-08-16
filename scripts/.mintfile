@@ -1,0 +1,14 @@
+# Pinned Swift CLI tool versions.
+#
+# Read by `mint bootstrap -m scripts/.mintfile` (local, builds from source) and by
+# scripts/install-swift-tools.sh (CI and headless, fetches the prebuilt release
+# binary for the same version). Bump a version here and both follow.
+#
+# A tool CI needs also needs an install_* function in install-swift-tools.sh; that
+# script errors on names it does not know.
+cpisciotta/xcbeautify@2.16.0
+yonaskolb/XcodeGen@2.43.0
+# Runs the mock/Component templates — scripts/generate-mocks.sh. Keep in step with
+# the version swift-sourcery-templates pins in its own Package.swift and
+# Checks/run-checks.sh: the templates are checked against exactly that Sourcery.
+krzysztofzablocki/Sourcery@2.3.0
