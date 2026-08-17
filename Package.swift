@@ -46,19 +46,16 @@ let package = Package(
     .library(name: "Telemetry", targets: ["Telemetry"]),
   ],
   dependencies: [
-    // The duet framework, as a sibling checkout while the family is
-    // private. THE SINGLE SWAP POINT at publication:
-    //   .package(name: "modaal-agent-duet",
-    //            url: "https://github.com/modaal-agent/duet.git",
-    //            exact: "<published tag>")
-    // (keep `name:` so the product references below survive the swap).
-    .package(name: "modaal-agent-duet", path: "../modaal-agent-duet")
+    // The duet framework, pinned EXACTLY: pre-1.0 minors are breaking by
+    // family convention, so an upgrade is a deliberate re-pin commit rather
+    // than a floating range.
+    .package(url: "https://github.com/modaal-agent/duet.git", exact: "0.2.1")
   ],
   targets: [
     .target(
       name: "Diagnostics",
       dependencies: [
-        .product(name: "DuetShells", package: "modaal-agent-duet")
+        .product(name: "DuetShells", package: "duet")
       ],
       swiftSettings: strictConcurrency
     ),
@@ -70,7 +67,7 @@ let package = Package(
     .target(
       name: "AppServices",
       dependencies: [
-        .product(name: "DuetShells", package: "modaal-agent-duet")
+        .product(name: "DuetShells", package: "duet")
       ],
       swiftSettings: strictConcurrency
     ),
@@ -88,7 +85,7 @@ let package = Package(
         .target(name: "Diagnostics"),
         .target(name: "Analytics"),
         .target(name: "AppServices"),
-        .product(name: "DuetTesting", package: "modaal-agent-duet"),
+        .product(name: "DuetTesting", package: "duet"),
       ],
       swiftSettings: strictConcurrency
     ),

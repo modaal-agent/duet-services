@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.1] — 2026-08-17
+
+Patch. No product API change; the package becomes resolvable by URL.
+
+### Changed — `duet` is an exact URL pin, not a sibling checkout
+
+`Package.swift` reaches the framework at
+`https://github.com/modaal-agent/duet.git`, `exact: "0.2.1"`, with
+`Package.resolved` committed. `0.1.0` declared a path dependency on
+`../modaal-agent-duet`, so resolving that tag from anywhere but a sibling
+layout fails; pin `0.1.1` or later.
+
+`.github/workflows/ci.yml` drops the sibling-materialization steps and the
+credential rewrite in both jobs — SwiftPM fetches the framework itself, and
+`scripts/generate-mocks.sh` clones the pinned tag for sourcery's inherited
+protocol requirements.
+
 ## [0.1.0] — 2026-08-17
 
 **This is a `0.x` line.** Minor releases may break API while the package

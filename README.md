@@ -23,9 +23,8 @@ only `Telemetry` adds nothing to its resolved graph beyond this package and
 
 ## Consuming
 
-While the family is private, checkouts sit side by side and manifests
-reference this package by path; at publication the reference becomes a
-version-pinned URL. The module names are the import names:
+Reference this package by a version-pinned URL. The module names are the
+import names:
 
 ```swift
 import AppServices

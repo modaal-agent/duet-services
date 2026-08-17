@@ -1,9 +1,6 @@
-# The package's own gate. While the family is private the manifest references
-# `duet` as a SIBLING CHECKOUT (../modaal-agent-duet), so each job materializes
-# that sibling at the pinned ref before building. Lines marked PRIVATE-PHASE
-# exist only until the family publishes and then delete wholesale — the
-# manifest swaps to a version-pinned URL and SwiftPM fetches the framework
-# itself (with a guarded token step, as the family's other repos do).
+# The package's own gate. The manifest resolves `duet` by URL at an exact tag,
+# so there is ONE checkout — this repo — and SwiftPM fetches the framework
+# itself.
 
 name: ci
 
@@ -11,12 +8,6 @@ on:
   push:
     branches: [main]
   pull_request:
-
-env:
-  # PRIVATE-PHASE: the duet ref the sibling checkout materializes at. Keep in
-  # step with the framework tag consumers build against; at publication the
-  # manifest's exact pin replaces this.
-  DUET_REF: "0.2.0"
 
 jobs:
   swift:
@@ -39,34 +30,9 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: ${{ matrix.xcode }}
-      # PRIVATE-PHASE: materialize the framework sibling the manifest's path
-      # dependency names. The token is required while modaal-agent/duet is
-      # private; when the repo is public the step still works tokenless.
-      - name: Materialize the duet sibling checkout
-        env:
-          DUET_FAMILY_TOKEN: ${{ secrets.DUET_FAMILY_TOKEN }}
-        run: |
-          if [ -n "$DUET_FAMILY_TOKEN" ]; then
-            git config --global \
-              url."https://x-access-token:${DUET_FAMILY_TOKEN}@github.com/modaal-agent/".insteadOf \
-              "https://github.com/modaal-agent/"
-          fi
-          git clone --quiet --depth 1 --branch "$DUET_REF" \
-            -c advice.detachedHead=false \
-            https://github.com/modaal-agent/duet.git \
-            "$GITHUB_WORKSPACE/../modaal-agent-duet"
       - name: Build + test
         id: tests
         run: swift test
-      # The config KEY embeds the token (`url.<rewritten>.insteadOf`), so it
-      # cannot be unset by naming the matched URL — enumerate the insteadOf
-      # keys and drop them. Belt-and-braces on GitHub-hosted (ephemeral) VMs;
-      # load-bearing the day this runs on a self-hosted box.
-      - name: Drop the credential rewrite
-        if: always()
-        run: |
-          git config --global --name-only --get-regexp '^url\..*\.insteadof$' \
-            | while read -r key; do git config --global --unset-all "$key"; done || true
       - name: Job summary
         if: always()
         run: |
@@ -76,7 +42,7 @@ jobs:
             echo "- toolchain: $(xcodebuild -version | tr '\n' ' ')"
             echo "- swift: $(swift --version 2>&1 | head -1)"
             echo "- lane: ${{ matrix.xcode != '' && 'the GA floor (pinned)' || 'the newest proven line (image default)' }}"
-            echo "- builds the four products against duet @ $DUET_REF; runs the service + telemetry suites"
+            echo "- builds the four products against the pinned duet tag; runs the service + telemetry suites"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The generated-code drift gate: files under Generated/ are build products —
@@ -86,25 +52,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      # PRIVATE-PHASE: sourcery parses the framework's sources for inherited
-      # protocol requirements, and the manifest names the sibling checkout.
-      - name: Materialize the duet sibling checkout
-        env:
-          DUET_FAMILY_TOKEN: ${{ secrets.DUET_FAMILY_TOKEN }}
-        run: |
-          if [ -n "$DUET_FAMILY_TOKEN" ]; then
-            git config --global \
-              url."https://x-access-token:${DUET_FAMILY_TOKEN}@github.com/modaal-agent/".insteadOf \
-              "https://github.com/modaal-agent/"
-          fi
-          git clone --quiet --depth 1 --branch "$DUET_REF" \
-            -c advice.detachedHead=false \
-            https://github.com/modaal-agent/duet.git \
-            "$GITHUB_WORKSPACE/../modaal-agent-duet"
+      # sourcery parses the framework's sources for inherited protocol
+      # requirements; generate-mocks.sh clones the pinned duet tag for them.
       - name: Regenerate and fail on drift
         run: scripts/generate-mocks.sh --check
-      - name: Drop the credential rewrite
-        if: always()
-        run: |
-          git config --global --name-only --get-regexp '^url\..*\.insteadof$' \
-            | while read -r key; do git config --global --unset-all "$key"; done || true
