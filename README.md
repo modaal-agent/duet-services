@@ -21,6 +21,33 @@ analytics or crash backend by conforming to a port in one file of its own.
 only `Telemetry` adds nothing to its resolved graph beyond this package and
 `duet`. Consumers that audit their dependency closure gate on that emptiness.
 
+Two contracts an adopting app works with directly:
+
+**The verb vocabulary is the app's.** `TrackedVerb` is a token type, not a
+closed enum, and the verbs it declares are a starting point. An app adds its
+own wherever it needs them — in a feature package, or app-side — and they are
+first-class from that line on:
+
+```swift
+public extension TrackedVerb {
+  static let shared = TrackedVerb("Shared")
+}
+```
+
+`rawValue` is the token, and the token is the whole story: identity, wire
+form, and the vendor-facing spelling (`encodedName()` splices it after the
+subject) — mint it spelled exactly as a dashboard should read it
+(`TrackedVerb("Signed Out")`).
+
+**`AppServicesWorker` buffers inbound events until registration completes.**
+Handlers register asynchronously (from the ingress worker's `run()`, started
+by `StoreHost.adopt` on its own task) while a scene's cold-launch drain is
+synchronous, so the worker holds inbound URLs and the APNS device token until
+the registrar calls `handlersDidRegister()`, then dispatches them against the
+complete, priority-ordered registry. **The app's ingress worker must make that
+call** — without it a launch-tapped universal link waits in the buffer instead
+of reaching a handler.
+
 ## Consuming
 
 Reference this package by a version-pinned URL. The module names are the

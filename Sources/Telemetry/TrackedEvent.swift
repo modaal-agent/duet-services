@@ -3,10 +3,10 @@
 
 import Foundation
 
-/// The event GRAMMAR — a closed vocabulary, not a catalog. Every analytics
-/// event in the app is one `TrackedEvent`: a subject, a verb from the closed
-/// set, and an ordered list of primitive params. Nodes declare their own
-/// named events from this grammar (one builder per event, in a
+/// The event GRAMMAR — a vocabulary, not a catalog. Every analytics event in
+/// the app is one `TrackedEvent`: a subject, a verb from the app's verb
+/// vocabulary, and an ordered list of primitive params. Nodes declare their
+/// own named events from this grammar (one builder per event, in a
 /// `<Node>Events` enum next to the feature) and reducers emit them as
 /// `.track` effects, so which event fires on which transition — params
 /// included — is fixture-gated.
@@ -28,31 +28,80 @@ public struct TrackedEvent: Equatable, Codable, Sendable {
   }
 }
 
-/// The closed verb set. Growing it is a taxonomy decision (a new
-/// vendor-facing name family), reviewed like one — not a call-site
-/// convenience. `rendered` is the vendor-facing spelling; the serialized
-/// form stays the case's raw value.
-public enum TrackedVerb: String, Equatable, Codable, Sendable {
-  // scaffold-content: the starter verb set — grow or trim to YOUR app's
-  // taxonomy; keep the set closed.
-  case viewed = "Viewed"
-  case opened = "Opened"
-  case started = "Started"
-  case completed = "Completed"
-  case failed = "Failed"
-  case created = "Created"
-  case edited = "Edited"
-  case deleted = "Deleted"
-  case toggled = "Toggled"
-  case signedOut = "SignedOut"
-  // /scaffold-content
+/// A verb — one token from the app's verb vocabulary.
+///
+/// The vocabulary is the APP's, not this package's: the verbs below are the
+/// ones most apps start from, and an app adds its own in one line, wherever
+/// it needs them:
+///
+/// ```swift
+/// public extension TrackedVerb {
+///   static let shared = TrackedVerb("Shared")
+///   static let regenerated = TrackedVerb("Regenerated")
+/// }
+/// ```
+///
+/// A struct rather than an enum, and that is the whole reason: an enum's
+/// cases are fixed by the module that declares them, so a linked grammar
+/// would cap every app's taxonomy at this file's list — and a kmp-flavored
+/// app, whose reducers mint verbs in Kotlin, could not carry a Kotlin verb
+/// across the language boundary without an edit here. What the app gives up
+/// is the compiler's exhaustiveness check over verbs, which nothing in the
+/// grammar switched on.
+///
+/// Adding a verb stays a taxonomy decision — a new vendor-facing name family
+/// every dashboard then keys on — reviewed like one, not a call-site
+/// convenience. Reach for an existing verb first.
+///
+/// `rawValue` is the token, and the token is the whole story: the identity
+/// (`==` and hashing), the wire form (a verb encodes as the bare string),
+/// and the vendor-facing spelling (`encodedName()` splices it after the
+/// subject). Mint it spelled exactly as a dashboard should read it —
+/// `TrackedVerb("Signed Out")`. A dual-language app's converter picks the
+/// token for a crossing verb from the Kotlin declaration's display name, so
+/// both languages spell one event one way because ONE declaration is the
+/// source — there is no derivation to keep in step.
+public struct TrackedVerb: RawRepresentable, Hashable, Codable, Sendable {
 
-  /// The vendor-facing spelling.
-  public var rendered: String {
-    switch self {
-    case .signedOut: return "Signed Out"
-    default: return rawValue
-    }
+  /// The token — Title Case, spelled as displayed (`"Signed Out"`).
+  public let rawValue: String
+
+  public init(rawValue: String) {
+    assert(!rawValue.isEmpty, "a verb token must not be empty")
+    self.rawValue = rawValue
+  }
+
+  /// The spelling a call site reads best: `TrackedVerb("Shared")`.
+  public init(_ rawValue: String) {
+    self.init(rawValue: rawValue)
+  }
+
+  // The starter vocabulary — the verbs an app is likeliest to need on day
+  // one. Not a closed set and not scaffold-content: an app adds to it with
+  // an extension (above) and simply does not name the ones it has no use
+  // for.
+  public static let viewed = TrackedVerb("Viewed")
+  public static let opened = TrackedVerb("Opened")
+  public static let started = TrackedVerb("Started")
+  public static let completed = TrackedVerb("Completed")
+  public static let failed = TrackedVerb("Failed")
+  public static let created = TrackedVerb("Created")
+  public static let edited = TrackedVerb("Edited")
+  public static let deleted = TrackedVerb("Deleted")
+  public static let toggled = TrackedVerb("Toggled")
+  public static let signedOut = TrackedVerb("Signed Out")
+
+  // The wire form is the token alone — a bare string. Swift's
+  // `RawRepresentable` default coding also encodes the bare string; the
+  // explicit pair pins that wire form as this type's contract instead of
+  // inheriting it.
+  public init(from decoder: Decoder) throws {
+    self.init(try decoder.singleValueContainer().decode(String.self))
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    try container.encode(rawValue)
   }
 }
 
@@ -138,9 +187,9 @@ extension TrackedParam: Codable {
 
 extension TrackedEvent {
   /// The vendor-facing event name — ONE encoding rule for every sink:
-  /// `"Subject Verb"`, Title Case. Pinned by a logical test (fixtures record
-  /// grammar VALUES; the name is derived).
-  public func encodedName() -> String { "\(subject) \(verb.rendered)" }
+  /// `"Subject Verb"`, Title Case, the verb token verbatim. Pinned by a
+  /// logical test (fixtures record grammar VALUES; the name is derived).
+  public func encodedName() -> String { "\(subject) \(verb.rawValue)" }
 
   /// The vendor-facing property bag — the ordered param list flattened to
   /// key/value pairs. Sinks hand this to their SDK verbatim.

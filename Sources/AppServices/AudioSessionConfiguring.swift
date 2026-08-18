@@ -34,11 +34,20 @@ public protocol AudioSessionConfiguring: AnyObject {
 
   /// Current record-permission state, so callers can branch (granted →
   /// record, undetermined → request, denied → surface UX).
-  var recordPermission: AVAudioSession.RecordPermission { get }
+  ///
+  /// iOS 17 and up: `AVAudioApplication` is where recording permission lives,
+  /// and `AVAudioSession`'s equivalent is deprecated. This package floors at
+  /// iOS 16, so the two permission members carry the availability rather than
+  /// the package holding every consumer to the deprecated spelling. An app
+  /// whose deployment target is 17 or higher calls them with no availability
+  /// check, and conforms with no annotation of its own.
+  @available(iOS 17, *)
+  var recordPermission: AVAudioApplication.recordPermission { get }
 
   /// Prompt the OS permission alert. The handler arrives on a non-main
   /// thread per the system signature; dispatch before touching UI.
-  func requestRecordPermission(_ handler: @escaping (Bool) -> Void)
+  @available(iOS 17, *)
+  func requestRecordPermission(_ handler: @escaping @Sendable (Bool) -> Void)
 }
 
 /// System-singleton-backed default.
@@ -62,12 +71,14 @@ public final class SystemAudioSession: AudioSessionConfiguring {
       false, options: .notifyOthersOnDeactivation)
   }
 
-  public var recordPermission: AVAudioSession.RecordPermission {
-    AVAudioSession.sharedInstance().recordPermission
+  @available(iOS 17, *)
+  public var recordPermission: AVAudioApplication.recordPermission {
+    AVAudioApplication.shared.recordPermission
   }
 
-  public func requestRecordPermission(_ handler: @escaping (Bool) -> Void) {
-    AVAudioSession.sharedInstance().requestRecordPermission(handler)
+  @available(iOS 17, *)
+  public func requestRecordPermission(_ handler: @escaping @Sendable (Bool) -> Void) {
+    AVAudioApplication.requestRecordPermission(completionHandler: handler)
   }
 }
 

@@ -5,6 +5,11 @@ import Foundation
 import Telemetry
 import XCTest
 
+/// A verb this package does not declare, added the way an app adds one.
+private extension TrackedVerb {
+  static let archived = TrackedVerb("Archived")
+}
+
 /// The logical pins for the grammar's DERIVED surface: fixtures record
 /// grammar VALUES; the vendor-facing name and property bag are derived, so
 /// the encoding rule is pinned here — exact strings — instead of by
@@ -16,9 +21,38 @@ final class TrackedEventTests: XCTestCase {
     XCTAssertEqual(TrackedEvent(subject: "Item", verb: .created).encodedName(), "Item Created")
     XCTAssertEqual(
       TrackedEvent(subject: "Item Load", verb: .failed).encodedName(), "Item Load Failed")
-    // The one multi-word verb rendering.
+    // A multi-word token splices verbatim.
     XCTAssertEqual(
       TrackedEvent(subject: "Session", verb: .signedOut).encodedName(), "Session Signed Out")
+  }
+
+  /// The extension point: a verb this package never declared behaves like
+  /// one it did — encoded, decoded and compared the same way.
+  func testAnAppDeclaredVerbIsAFirstClassVerb() throws {
+    let event = TrackedEvent(subject: "Report", verb: .archived)
+
+    XCTAssertEqual(event.encodedName(), "Report Archived")
+
+    let encoded = try JSONEncoder().encode(event)
+    XCTAssertEqual(try JSONDecoder().decode(TrackedEvent.self, from: encoded), event)
+  }
+
+  /// The wire form is the bare token, and the token survives a decode
+  /// unchanged — it is also the vendor-facing spelling, so there is no
+  /// second storage to drift.
+  func testTheTokenIsTheWireFormAndSurvivesADecode() throws {
+    let encoded = try JSONEncoder().encode(TrackedVerb.signedOut)
+    XCTAssertEqual(String(decoding: encoded, as: UTF8.self), #""Signed Out""#)
+    XCTAssertEqual(try JSONDecoder().decode(TrackedVerb.self, from: encoded), .signedOut)
+  }
+
+  /// Identity is the token: two spellings of one verb are one verb, whichever
+  /// initializer minted them.
+  func testVerbIdentityIsTheToken() {
+    XCTAssertEqual(TrackedVerb("Completed"), .completed)
+    XCTAssertEqual(TrackedVerb(rawValue: "Completed"), .completed)
+    XCTAssertEqual(Set([TrackedVerb("Completed"), .completed]).count, 1)
+    XCTAssertNotEqual(TrackedVerb("Completed"), .created)
   }
 
   func testEncodedPropertiesFlattenTheParamList() {

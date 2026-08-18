@@ -1,5 +1,98 @@
 # Changelog
 
+## [0.2.0] — 2026-08-18
+
+Minor. One migration step applies to EVERY existing consumer: call
+`handlersDidRegister()` from your ingress worker (second entry below). An
+app that re-pins without adding the call compiles clean and never dispatches
+an inbound URL or device token again — the worker buffers them waiting for a
+signal that never comes. Three changes are source-breaking where named:
+exhaustive verb switches (first entry), `AppServicesRegistering` conformers
+(second), and `AudioSessionConfiguring` conformers, hand-written audio
+doubles included (third). All of it came out of adopting this package in an
+existing duet app, which was already running shapes the package did not.
+
+### Changed — `TrackedVerb` is an open token type, so the vocabulary is the app's
+
+`TrackedVerb` was a closed enum carrying a starter set. An app cannot add a
+case to an enum in a linked module, so every app's taxonomy was capped at this
+package's list — and a kmp-flavored app, whose reducers mint verbs in Kotlin,
+could not carry a Kotlin verb across the language boundary at all. It is a
+`RawRepresentable` struct now: the same starter verbs ship as static members,
+and an app adds its own in one line
+(`extension TrackedVerb { static let shared = TrackedVerb("Shared") }`).
+
+- **The token is the whole story** — identity (`TrackedVerb("Completed") ==
+  .completed`), wire form (a verb encodes as the bare token string), and the
+  vendor-facing spelling (`encodedName()` splices the token after the
+  subject). `rendered` is REMOVED: with an open type each verb is minted
+  spelled exactly as a dashboard should read it (`TrackedVerb("Signed
+  Out")`), so there is nothing to derive and no second table. A
+  dual-language app's converter picks the crossing token from the Kotlin
+  declaration's display name — one declaration is the spelling's source on
+  both platforms.
+- Starter set: nine single-word tokens are unchanged; `signedOut`'s token is
+  now `"Signed Out"` (0.1.x encoded it as `"SignedOut"` and derived the
+  display spelling).
+- Migration: replace `verb.rendered` with `verb.rawValue`; an exhaustive
+  `switch` over verbs (one without a `default` arm) no longer compiles —
+  compare against the members or add a `default`. Call sites
+  (`verb: .completed`), `TrackedEvent` construction and `encodedName()` are
+  source-compatible.
+
+### Added — `AppServicesWorker` holds inbound events until registration completes
+
+Handler registration is asynchronous — it rides the ingress worker's `run()`,
+which `StoreHost.adopt` starts on its own task — while a scene's cold-launch
+drain is synchronous, so a launch-tapped universal link reached an empty
+registry and was dropped. The worker now buffers inbound URLs (capped at 8;
+overflow is dropped with a log line) and the APNS device token (last one wins)
+until the new `AppServicesRegistrationSettling.handlersDidRegister()` reports
+the registration burst complete, then dispatches the buffer in arrival order
+against the full priority-ordered registry — so a high-priority handler
+registered late in the burst still out-ranks a catch-all registered early. The
+signal is idempotent and one-way.
+
+`AppServicesRegistering` inherits the new protocol on both platform branches.
+
+- **An adopting app must make that call** from its ingress worker, after the
+  registration burst. Without it, inbound URLs stay in the buffer.
+- Unclaimed URLs are logged now (scheme and host only — a link's path is where
+  a token rides).
+- The buffered device token drains against the notification registry as it
+  stood when the burst completed (a snapshot, like the URL half); draining
+  with zero notification handlers logs the drop.
+
+### Changed — `AudioSessionConfiguring`'s permission members move to the iOS 17 API
+
+`recordPermission` and `requestRecordPermission` were spelled on
+`AVAudioSession.RecordPermission`, deprecated since iOS 17, so every consumer
+conformed to a deprecated API — and an app that builds with warnings as errors
+could not adopt the port at all. They now use `AVAudioApplication`, carrying
+`@available(iOS 17, *)`: this package keeps its iOS 16 floor, an app whose
+deployment target is 17 or higher conforms and calls with no annotation of its
+own, and the handler is `@Sendable` (it arrives off the main thread).
+
+- Migration for every conformer: change the permission type to
+  `AVAudioApplication.recordPermission` and add `@Sendable` to the handler
+  parameter. A conformer whose own deployment floor is below iOS 17 also
+  annotates the two members `@available(iOS 17, *)`.
+
+### Added — `FakeAudioSession`
+
+An in-memory `AudioSessionConfiguring` beside the other fakes (DEBUG-only,
+iOS-only like the port): records activations, answers a fixed permission
+state. Construction is availability-free (`FakeAudioSession()`); the
+permission-typed initializer is iOS 17+. The port is platform-conditional and
+therefore not mock-generated, so until now every consumer hand-wrote this
+double.
+
+### Added — CI compiles the iOS-only surface
+
+`ci.yml` gains an iOS Simulator build job: `swift test` runs on macOS, so the
+`#if os(iOS)` files — the audio-session port, `FakeAudioSession`, the APNS
+half of `AppServicesWorker` — were compiled by no lane of this repo.
+
 ## [0.1.1] — 2026-08-17
 
 Patch. No product API change; the package becomes resolvable by URL.
@@ -17,7 +110,7 @@ credential rewrite in both jobs — SwiftPM fetches the framework itself, and
 `scripts/generate-mocks.sh` clones the pinned tag for sourcery's inherited
 protocol requirements.
 
-## [0.1.0] — 2026-08-17
+## [0.1.0] — 2026-08-16
 
 **This is a `0.x` line.** Minor releases may break API while the package
 stabilises; patch releases stay source-compatible. At publication, pin with

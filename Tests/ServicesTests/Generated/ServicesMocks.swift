@@ -48,6 +48,21 @@ final class AppServiceURLHandlingMock: AppServiceURLHandling {
     var openURLsHandler: ((_ urls: [URL]) -> ())? = nil
 }
 
+// MARK: - AppServicesRegistrationSettling
+@MainActor
+final class AppServicesRegistrationSettlingMock: AppServicesRegistrationSettling {
+
+    // MARK: - Methods
+    func handlersDidRegister() {
+        handlersDidRegisterCallCount += 1
+        if let __handlersDidRegisterHandler = self.handlersDidRegisterHandler {
+            __handlersDidRegisterHandler()
+        }
+    }
+    var handlersDidRegisterCallCount: Int = 0
+    var handlersDidRegisterHandler: (() -> ())? = nil
+}
+
 // MARK: - AppServicesURLHandlerRegistering
 @MainActor
 final class AppServicesURLHandlerRegisteringMock: AppServicesURLHandlerRegistering {

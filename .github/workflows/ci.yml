@@ -45,6 +45,22 @@ jobs:
             echo "- builds the four products against the pinned duet tag; runs the service + telemetry suites"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # The iOS compile gate: the swift job's `swift test` runs on macOS, so
+  # every `#if os(iOS)` file — the audio-session port, FakeAudioSession, the
+  # APNS half of AppServicesWorker — is invisible to it. Build-only for a
+  # simulator destination; the logical tests run on the host lanes above.
+  ios-build:
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the package for iOS Simulator
+        run: |
+          xcodebuild build \
+            -scheme duet-services-Package \
+            -destination 'generic/platform=iOS Simulator' \
+            -skipMacroValidation
+
   # The generated-code drift gate: files under Generated/ are build products —
   # this regenerates them from the annotated protocols and fails on a diff.
   codegen:

@@ -53,4 +53,45 @@ public final class FakePasteboard: PasteboardWriting, PasteboardReading {
   public func readString() -> String? { contents }
 }
 
+#if os(iOS)
+
+import AVFoundation
+
+/// Records session activations instead of touching the shared
+/// `AVAudioSession`, and answers a fixed permission state. iOS-only, like the
+/// port itself — the macOS host lane compiles neither.
+public final class FakeAudioSession: AudioSessionConfiguring {
+  public private(set) var activations: [String] = []
+  public var recordPermissionRequestResult = true
+
+  private let permission: Any?
+
+  /// Availability-free construction — an iOS 16 consumer exercises the three
+  /// activation members with the permission answer left at `.granted`.
+  public init() {
+    permission = nil
+  }
+
+  @available(iOS 17, *)
+  public init(recordPermission: AVAudioApplication.recordPermission = .granted) {
+    permission = recordPermission
+  }
+
+  public func activatePlayback() { activations.append("playback") }
+  public func activateRecording() throws { activations.append("recording") }
+  public func deactivate() { activations.append("deactivate") }
+
+  @available(iOS 17, *)
+  public var recordPermission: AVAudioApplication.recordPermission {
+    (permission as? AVAudioApplication.recordPermission) ?? .granted
+  }
+
+  @available(iOS 17, *)
+  public func requestRecordPermission(_ handler: @escaping @Sendable (Bool) -> Void) {
+    handler(recordPermissionRequestResult)
+  }
+}
+
+#endif
+
 #endif
