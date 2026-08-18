@@ -15,13 +15,8 @@
 #
 # Usage:
 #   scripts/install-swift-tools.sh              # install the build tools (xcodegen, xcbeautify)
-#   scripts/install-swift-tools.sh sourcery     # or just the ones named
+#   scripts/install-swift-tools.sh xcodegen     # or just the ones named
 #   "$(scripts/install-swift-tools.sh --bin-dir)"/xcodegen --version
-#
-# `sourcery` is pinned here but NOT in the no-argument set: its artifact bundle is
-# 59 MB and only scripts/generate-mocks.sh needs it, which asks for it by name.
-# The app-tree jobs that call this script with no arguments would otherwise
-# download it on every run and use it for nothing.
 #
 # Installs into .build/tools/ (gitignored; override with SWIFT_TOOLS_DIR).
 # Idempotent: a tool already at the pinned version costs one --version call.
@@ -119,28 +114,6 @@ install_xcbeautify() {
   chmod +x "$bin"
 }
 
-install_sourcery() {
-  local want="$1" bin="$BIN_DIR/sourcery"
-  if already_at "$bin" "$want"; then
-    echo "install-swift-tools: sourcery $want already installed" >&2
-    return
-  fi
-  echo "install-swift-tools: fetching prebuilt sourcery $want" >&2
-  local tmp
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' RETURN
-  fetch_and_unpack \
-    "https://github.com/krzysztofzablocki/Sourcery/releases/download/${want}/sourcery-${want}.artifactbundle.zip" "$tmp"
-  # sourcery evaluates .swifttemplate files through EJS and loads ejs.js from its
-  # own bin directory, so the two files install together. The rest of the bundle
-  # (stock Templates/, the docset, Resources/) is not used: generate-mocks.sh
-  # passes --templates explicitly.
-  mkdir -p "$BIN_DIR"
-  mv "$tmp/sourcery-${want}.artifactbundle/sourcery/bin/sourcery" "$bin"
-  mv "$tmp/sourcery-${want}.artifactbundle/sourcery/bin/ejs.js" "$BIN_DIR/ejs.js"
-  chmod +x "$bin"
-}
-
 WANTED=("$@")
 if [[ ${#WANTED[@]} -eq 0 ]]; then
   WANTED=(xcodegen xcbeautify)
@@ -158,13 +131,8 @@ for tool in "${WANTED[@]}"; do
       [[ -n "$version" ]] || { echo "install-swift-tools: xcbeautify is not pinned in $MINTFILE" >&2; exit 2; }
       install_xcbeautify "$version"
       ;;
-    sourcery)
-      version="$(pinned_version krzysztofzablocki/Sourcery)"
-      [[ -n "$version" ]] || { echo "install-swift-tools: Sourcery is not pinned in $MINTFILE" >&2; exit 2; }
-      install_sourcery "$version"
-      ;;
     *)
-      echo "install-swift-tools: unknown tool '$tool' (known: xcodegen, xcbeautify, sourcery)" >&2
+      echo "install-swift-tools: unknown tool '$tool' (known: xcodegen, xcbeautify)" >&2
       echo "  Add an install_* function here when a new .mintfile entry needs one." >&2
       exit 2
       ;;

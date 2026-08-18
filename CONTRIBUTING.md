@@ -20,7 +20,9 @@
   change, not an implementation detail.
 - **Files under `Generated/` are build products.** Change the annotated
   protocol and re-run `scripts/generate-mocks.sh`; CI fails on drift
-  (`--check`). Never hand-edit a generated file.
+  (`--check` validates each file's fingerprint block — a stale input, a
+  source file added after generation, or a hand-edit turns it red, with no
+  Sourcery run). Never hand-edit a generated file.
 - **A release cut sets the version in the commit that gets tagged** (the
   family convention — see the `duet` repo's CONTRIBUTING).
 - **Licensing**: MIT, inbound = outbound; submitting a PR means your

@@ -61,14 +61,17 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             -skipMacroValidation
 
-  # The generated-code drift gate: files under Generated/ are build products —
-  # this regenerates them from the annotated protocols and fails on a diff.
+  # The generated-code staleness gate: files under Generated/ are build
+  # products carrying a fingerprint block (bundle tag, generator config,
+  # SHA-256 per scanned input, SHA-256 of the body). `--check` downloads the
+  # mock-templates CLI (kilobytes, checksum-pinned), clones the pinned duet
+  # tag to put the recorded inputs on disk, and re-hashes them plus the body
+  # — no Sourcery run, no template compile. A changed input, a source file
+  # added after generation, and a hand-edit all fail it.
   codegen:
     runs-on: macos-26
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      # sourcery parses the framework's sources for inherited protocol
-      # requirements; generate-mocks.sh clones the pinned duet tag for them.
-      - name: Regenerate and fail on drift
+      - name: Validate the generated code's fingerprints
         run: scripts/generate-mocks.sh --check
