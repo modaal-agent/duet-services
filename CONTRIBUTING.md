@@ -12,9 +12,20 @@
   belongs in `CHANGELOG.md` and commit messages, where the change itself is
   the subject.
 - **The worker-seam shape is the API convention.** A service module ships a
-  port (protocol), a default implementation, a fake for consumers' tests,
-  and logical tests here. Vendor SDKs never enter this package's dependency
-  graph — a backend plugs in through a port, in the consumer's own code.
+  port (protocol), a default implementation, and logical tests here. Vendor
+  SDKs never enter this package's dependency graph — a backend plugs in
+  through a port, in the consumer's own code.
+- **Test doubles never live in a product's `Sources/`, `#if DEBUG`
+  included.** A DEBUG gate keeps a double out of release binaries, not out
+  of the module's API surface or its compile graph. A double one test target
+  uses lives in that test target; a shared double lives in the doubled
+  product's `<Product>TestSupport` library, which only test targets link.
+  Where the doubled port is unconditional and a consumer only needs a
+  recording spy, annotate the port `sourcery: CreateMock` instead of
+  hand-writing the double — the generation lane emits the spy here and in
+  every consumer that runs one. Platform-conditional doubles stay
+  hand-written in the TestSupport target, behind the port's own platform
+  condition.
 - **`Telemetry` declares no target dependencies.** Consumers gate on that
   emptiness; a dependency added to the `Telemetry` target is a breaking
   change, not an implementation detail.

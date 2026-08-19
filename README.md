@@ -12,9 +12,13 @@ apps; depends on `duet`. Four library products, each consumed independently:
 | `AppServices` | the inbound-URL/notification registry worker and the system-integration ports (audio session, haptics, pasteboard, system app actions) |
 | `Telemetry` | the semantic-event grammar substrate: `TrackedEvent`/`TrackedVerb`/`TrackedParam`, the `AnalyticsTracking` port, `NoOpAnalytics` and `CompositeAnalytics` |
 
-The service modules follow the worker-seam shape — port + default + fake +
-logical tests — and ship ready to adopt on a `StoreHost` at the composition
-root. No vendor SDK is declared anywhere in this package: an app picks its
+The service modules follow the worker-seam shape — port + default + logical
+tests — and ship ready to adopt on a `StoreHost` at the composition root.
+Test doubles are generated, not shipped: every unconditional port is
+annotated `sourcery: CreateMock`, so a consumer's mock-generation lane emits
+the doubles into its own test target. The one exception is the iOS-only
+audio-session port, whose hand-written `FakeAudioSession` ships in the
+`AppServicesTestSupport` library — a product only test targets link. No vendor SDK is declared anywhere in this package: an app picks its
 analytics or crash backend by conforming to a port in one file of its own.
 
 `Telemetry`'s target is **dependency-free by contract**: a package that links

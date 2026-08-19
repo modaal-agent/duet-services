@@ -22,8 +22,8 @@ final class AppServicesWorkerTests: XCTestCase {
     let tester = WorkerTester(worker)
     tester.start()
 
-    let fallback = FakeURLHandler()
-    let high = FakeURLHandler()
+    let fallback = makeHandler()
+    let high = makeHandler()
     let fallbackToken = worker.registerURLHandler(fallback, priority: .fallback)
     let highToken = worker.registerURLHandler(high, priority: .high)
     defer {
@@ -35,8 +35,8 @@ final class AppServicesWorkerTests: XCTestCase {
     let url = URL(string: "https://example.com/a")!
     worker.openURL(url)
 
-    XCTAssertEqual(high.handled, [url])
-    XCTAssertEqual(fallback.handled, [])
+    XCTAssertEqual(high.handleOpenUrlArgs, [url])
+    XCTAssertEqual(fallback.handleOpenUrlArgs, [])
 
     await tester.finish()
   }
@@ -47,8 +47,8 @@ final class AppServicesWorkerTests: XCTestCase {
     let tester = WorkerTester(worker)
     tester.start()
 
-    let picky = FakeURLHandler(canHandle: { $0.scheme == "app" })
-    let catchAll = FakeURLHandler()
+    let picky = makeHandler(canHandle: { $0.scheme == "app" })
+    let catchAll = makeHandler()
     let pickyToken = worker.registerURLHandler(picky, priority: .high)
     let catchAllToken = worker.registerURLHandler(catchAll, priority: .fallback)
     defer {
@@ -61,8 +61,8 @@ final class AppServicesWorkerTests: XCTestCase {
     let deep = URL(string: "app://open")!
     worker.openURLs([web, deep])
 
-    XCTAssertEqual(picky.handled, [deep])
-    XCTAssertEqual(catchAll.handled, [web])
+    XCTAssertEqual(picky.handleOpenUrlArgs, [deep])
+    XCTAssertEqual(catchAll.handleOpenUrlArgs, [web])
 
     await tester.finish()
   }
@@ -73,13 +73,13 @@ final class AppServicesWorkerTests: XCTestCase {
     let tester = WorkerTester(worker)
     tester.start()
 
-    let handler = FakeURLHandler()
+    let handler = makeHandler()
     let token = worker.registerURLHandler(handler, priority: .default)
     worker.handlersDidRegister()
     token.cancel()
 
     worker.openURL(URL(string: "https://example.com")!)
-    XCTAssertEqual(handler.handled, [])
+    XCTAssertEqual(handler.handleOpenUrlArgs, [])
 
     await tester.finish()
   }
@@ -94,14 +94,14 @@ final class AppServicesWorkerTests: XCTestCase {
     let tester = WorkerTester(worker)
     tester.start()
 
-    let catchAll = FakeURLHandler()
+    let catchAll = makeHandler()
     let catchAllToken = worker.registerURLHandler(catchAll, priority: .fallback)
 
     let launchURL = URL(string: "https://example.com/files/abc")!
     worker.openURL(launchURL)
-    XCTAssertEqual(catchAll.handled, [], "a pre-settle event must not dispatch")
+    XCTAssertEqual(catchAll.handleOpenUrlArgs, [], "a pre-settle event must not dispatch")
 
-    let claimant = FakeURLHandler(canHandle: { $0.path.hasPrefix("/files") })
+    let claimant = makeHandler(canHandle: { $0.path.hasPrefix("/files") })
     let claimantToken = worker.registerURLHandler(claimant, priority: .high)
     defer {
       catchAllToken.cancel()
@@ -110,8 +110,8 @@ final class AppServicesWorkerTests: XCTestCase {
 
     worker.handlersDidRegister()
 
-    XCTAssertEqual(claimant.handled, [launchURL])
-    XCTAssertEqual(catchAll.handled, [])
+    XCTAssertEqual(claimant.handleOpenUrlArgs, [launchURL])
+    XCTAssertEqual(catchAll.handleOpenUrlArgs, [])
 
     await tester.finish()
   }
@@ -124,7 +124,7 @@ final class AppServicesWorkerTests: XCTestCase {
     let tester = WorkerTester(worker)
     tester.start()
 
-    let handler = FakeURLHandler()
+    let handler = makeHandler()
     let token = worker.registerURLHandler(handler, priority: .default)
     defer { token.cancel() }
 
@@ -134,10 +134,10 @@ final class AppServicesWorkerTests: XCTestCase {
     worker.openURL(second)
 
     worker.handlersDidRegister()
-    XCTAssertEqual(handler.handled, [first, second])
+    XCTAssertEqual(handler.handleOpenUrlArgs, [first, second])
 
     worker.handlersDidRegister()
-    XCTAssertEqual(handler.handled, [first, second])
+    XCTAssertEqual(handler.handleOpenUrlArgs, [first, second])
 
     await tester.finish()
   }
@@ -153,13 +153,25 @@ final class AppServicesWorkerTests: XCTestCase {
     let urls = (0..<12).map { URL(string: "app://\($0)")! }
     urls.forEach { worker.openURL($0) }
 
-    let handler = FakeURLHandler()
+    let handler = makeHandler()
     let token = worker.registerURLHandler(handler, priority: .default)
     defer { token.cancel() }
     worker.handlersDidRegister()
 
-    XCTAssertEqual(handler.handled, Array(urls.prefix(8)))
+    XCTAssertEqual(handler.handleOpenUrlArgs, Array(urls.prefix(8)))
 
     await tester.finish()
   }
+}
+
+
+/// The generated recording mock, seeded as a claimant: the bare mock's
+/// `canHandleOpenUrl` answers `false`, and every registration in these tests
+/// wants a live claim answer.
+private func makeHandler(
+  canHandle: @escaping (URL) -> Bool = { _ in true }
+) -> URLHandlingMock {
+  let mock = URLHandlingMock()
+  mock.canHandleOpenUrlHandler = canHandle
+  return mock
 }

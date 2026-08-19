@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.3.0] — 2026-08-19
+
+Minor. Two migration steps, both tests-only — production targets are
+unaffected (no port, default, or worker moved):
+
+- A test that used `FakeAudioSession` links the new `AppServicesTestSupport`
+  product on its TEST target and imports it.
+- A test that used any other shipped fake switches to the mock its own
+  generation lane emits from this package's annotated ports
+  (`URLHandlingMock`, `PasteboardWritingMock`, `AnalyticsConsentStoringMock`,
+  …), or keeps a private copy of the removed class in its test target.
+
+### Changed — one hand-written double, in a TestSupport product; every other double is generated
+
+A test double in a product's `Sources/` rode `#if DEBUG`, which keeps it out
+of release binaries but not out of the module's API surface or its compile
+graph. The package now ships exactly one hand-written double —
+`FakeAudioSession`, in the `AppServicesTestSupport` library product that
+only test targets link, under the port's own `#if os(iOS)` condition. It is
+hand-written because it cannot be generated: the generated mocks file is
+unconditional, and the macOS host lane cannot compile a mock over iOS-only
+types. A planned mock-template extension (platform-conditional ports,
+`@available` members) retires it.
+
+### Changed — `AnalyticsConsentStoring.isEnabledPublisher` carries `sourcery: subject = "CurrentValue"`
+
+Generated mocks for the consent store now back the publisher with a seeded
+`CurrentValueSubject`, so a double reproduces the port's
+emit-current-value-on-subscribe contract out of the box. Drive subsequent
+emissions in a test through `isEnabledPublisherSubject.send(_:)`.
+
+### Removed — `FakeAnalyticsConsentStore`, `FakeURLHandler`, `FakePasteboard`, `RecordingURLOpener`, `RecordingHapticFeedback`
+
+All five doubled unconditional annotated ports, and the generated mocks are
+the doubles for those: closure stubs carry a claim predicate
+(`canHandleOpenUrlHandler`), the args arrays carry the recording, and the
+seeded subject above carries the consent store's subscribe-time emission.
+This package's own suite runs on its generated mocks for exactly these
+ports.
+
 ## [0.2.0] — 2026-08-18
 
 Minor. One migration step applies to EVERY existing consumer: call

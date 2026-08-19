@@ -7,7 +7,7 @@ import Foundation
 import XCTest
 
 /// Consent-store receipts: default-on with an absent key, persistence by
-/// key, and the fake's parity with the port.
+/// key, and the subscribe-time emission.
 final class AnalyticsTests: XCTestCase {
 
   private var defaults: UserDefaults!
@@ -44,17 +44,5 @@ final class AnalyticsTests: XCTestCase {
     defer { cancellable.cancel() }
 
     XCTAssertEqual(values, [true])
-  }
-
-  func testFakeMirrorsThePortContract() {
-    let fake = FakeAnalyticsConsentStore()
-    XCTAssertTrue(fake.isEnabled)
-
-    var values: [Bool] = []
-    let cancellable = fake.isEnabledPublisher.sink { values.append($0) }
-    defer { cancellable.cancel() }
-
-    fake.isEnabled = false
-    XCTAssertEqual(values, [true, false])
   }
 }

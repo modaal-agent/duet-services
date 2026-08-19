@@ -31,22 +31,22 @@
 // input: sha256:321ba2bd5fbe7f6eb9f263d5f6d4a38d84efca3f3862526e65195ccf6163e50d .build/duet-sources/swift/Sources/DuetTesting/TestClock.swift
 // input: sha256:6d37861ac09fee428296077efe86014c9ee45263fac5cac21e989e6cf0d779ec .build/duet-sources/swift/Sources/DuetTesting/TestStore.swift
 // input: sha256:fc10846532f2623d046c4f8e91aa910e9a32094273920fa7e604f716ab802029 .build/duet-sources/swift/Sources/DuetTesting/WorkerTester.swift
-// input: sha256:60f7ec938331c25d7cd4e104a478932ef15ad56ef19a757fee1536a7e6667fad Sources/Analytics/AnalyticsConsentStore.swift
+// input: sha256:5e54dc8f276e6b7067c600fc846e6690e1cc437a8f013b05ae172e24367f15cf Sources/Analytics/AnalyticsConsentStore.swift
 // input: sha256:080f0668d810acf21733765e6dcbd2fb2fc66183c41d799e100357161423ae16 Sources/AppServices/AppServicePriority.swift
 // input: sha256:bdd73e7c291c5235844b9be449c60f21440b91dec6dc1a34997a8fb372167bb5 Sources/AppServices/AppServicesWorker.swift
 // input: sha256:320ed09f9f5ad22f443194e228df4a331913001f5abef9c639752e9cbbe2766a Sources/AppServices/AudioSessionConfiguring.swift
-// input: sha256:337baa7b93f6186b423a857af8b4033baebf44d7f44302055af42c447ad55e2c Sources/AppServices/FakeAppServices.swift
 // input: sha256:2aa4a909749a636d177f33c1db75491766c39b42b84c103dd2895e9c415bbfc2 Sources/AppServices/HapticFeedbackProviding.swift
 // input: sha256:723a04d57b1c4e74d02a47b207ae9d5d032732b16b86344a889adac673433521 Sources/AppServices/NotificationHandling.swift
 // input: sha256:7306674289d63ae80b95d6ccbe0154705c51ad90544e6ff550b34be2d0c4092b Sources/AppServices/Pasteboard.swift
 // input: sha256:df06343eb76236492a4c39fd6cac45670933342bc82db9cd7ac8ac6c600dbd9e Sources/AppServices/SystemAppActions.swift
 // input: sha256:d3aba936845a46a70f41b288da057ae6b53690311f25049dfb544b383b8d8283 Sources/AppServices/URLHandling.swift
 // input: sha256:8df3770bd979fd8e4ce7f2eb2b8201403d141acb8435442a9f1f77b36110bec8 Sources/AppServices/URLOpening.swift
+// input: sha256:989876c101c9a31983ed112c3742a992843cb5881230ec9d84fa4a3fb3ac67e5 Sources/AppServicesTestSupport/FakeAudioSession.swift
 // input: sha256:1f6fe2dee3d92c61a18544b0bf490ab50946f38f88bbb6734b1e30da1f311f83 Sources/Diagnostics/Diagnostics.swift
 // input: sha256:20d3218bd37aba54d8b8f93ab6ff7a02ea1a54e44e5c05547387e2a4e705decc Sources/Diagnostics/DiagnosticsWorker.swift
 // input: sha256:8565c9c1017b9180460e6090a4ff9415bb1697f8e9c070398e72f01ebb477392 Sources/Telemetry/Analytics.swift
 // input: sha256:2c289ca578296e9c4b171d668dff979326be083e72f59d05d5eaa04a6c09abed Sources/Telemetry/TrackedEvent.swift
-// body: sha256:169d94a7387abc08223eda61fd71d46e16cb0e0e356985e236b218704622dcd1
+// body: sha256:27f35d00547ca3eaaf7e7a1c8ff007427aa03e6a821aaac3de4e588922921c43
 // mock-templates:end
 // Generated using Sourcery 2.3.0 — https://github.com/krzysztofzablocki/Sourcery
 // DO NOT EDIT
@@ -78,7 +78,7 @@ final class AnalyticsConsentStoringMock: AnalyticsConsentStoring {
     }
     var isEnabledPublisherGetCount: Int = 0
     var isEnabledPublisherGetHandler: (() -> AnyPublisher<Bool, Never>)? = nil
-    lazy var isEnabledPublisherSubject = PassthroughSubject<Bool, Never>()
+    lazy var isEnabledPublisherSubject = CurrentValueSubject<Bool, Never>(false)
 }
 
 // MARK: - AppServiceURLHandling

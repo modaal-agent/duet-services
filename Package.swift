@@ -13,15 +13,24 @@ import PackageDescription
 //   AppServices   the inbound-URL/notification registry worker and the
 //                 system-integration ports (audio session, haptics,
 //                 pasteboard, system actions)
+//
+// plus AppServicesTestSupport, the TestSupport library carrying the one
+// hand-written double (`FakeAudioSession` — its port is iOS-only, so no
+// mock can be generated for it). Only TEST targets link a TestSupport
+// product; production targets never declare one, which is what keeps the
+// double out of release binaries and out of the products' API surface.
+// Every unconditional port is annotated `sourcery: CreateMock` instead:
+// consumers generate their doubles into their own test targets.
 //   Telemetry     the semantic-event grammar substrate: the event product
 //                 type, the tracking port, the SDK-free fan-out and no-op
 //                 sinks. Its target depends on nothing — a consumer that
 //                 links only Telemetry adds no third-party code to its
 //                 resolved graph beyond this package and `duet`.
 //
-// The service modules follow the worker-seam shape (port + default + fake +
-// logical tests); an app picks a vendor by conforming to a port in one file,
-// never by a dependency declared here.
+// The service modules follow the worker-seam shape (port + default + logical
+// tests, with shared doubles in the product's TestSupport library); an app
+// picks a vendor by conforming to a port in one file, never by a dependency
+// declared here.
 
 // Complete concurrency checking under the Swift 5 language mode, matching the
 // `duet` framework's posture: `Sendable` conformances and actor isolation are
@@ -43,6 +52,7 @@ let package = Package(
     .library(name: "Diagnostics", targets: ["Diagnostics"]),
     .library(name: "Analytics", targets: ["Analytics"]),
     .library(name: "AppServices", targets: ["AppServices"]),
+    .library(name: "AppServicesTestSupport", targets: ["AppServicesTestSupport"]),
     .library(name: "Telemetry", targets: ["Telemetry"]),
   ],
   dependencies: [
@@ -68,6 +78,16 @@ let package = Package(
       name: "AppServices",
       dependencies: [
         .product(name: "DuetShells", package: "duet")
+      ],
+      swiftSettings: strictConcurrency
+    ),
+    // The one shared hand-written double (see the product note above). Its
+    // compile gate is the iOS package build: the macOS host lane compiles
+    // the target to nothing, `#if os(iOS)` whole-file.
+    .target(
+      name: "AppServicesTestSupport",
+      dependencies: [
+        .target(name: "AppServices")
       ],
       swiftSettings: strictConcurrency
     ),

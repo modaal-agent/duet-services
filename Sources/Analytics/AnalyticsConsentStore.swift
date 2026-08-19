@@ -20,6 +20,10 @@ public protocol AnalyticsConsentStoring: AnyObject {
   var isEnabled: Bool { get set }
   /// Emits the current value on subscribe and on every subsequent change
   /// (including changes made by a different store instance in the process).
+  /// The seeded-subject annotation makes the generated mock's backing
+  /// subject a `CurrentValueSubject`, so a double reproduces the
+  /// emit-on-subscribe half of this contract without per-test wiring.
+  /// sourcery: subject = "CurrentValue"
   var isEnabledPublisher: AnyPublisher<Bool, Never> { get }
 }
 
@@ -53,27 +57,3 @@ public final class UserDefaultsAnalyticsConsentStore: AnalyticsConsentStoring {
       .eraseToAnyPublisher()
   }
 }
-
-#if DEBUG
-
-/// The fake, next to the port (fakes-first): in-memory, deterministic,
-/// reusable by tests and previews. DEBUG-only — release binaries never
-/// carry it; test builds are debug builds, so test targets see it.
-public final class FakeAnalyticsConsentStore: AnalyticsConsentStoring {
-  private let subject: CurrentValueSubject<Bool, Never>
-
-  public init(isEnabled: Bool = true) {
-    subject = CurrentValueSubject(isEnabled)
-  }
-
-  public var isEnabled: Bool {
-    get { subject.value }
-    set { subject.send(newValue) }
-  }
-
-  public var isEnabledPublisher: AnyPublisher<Bool, Never> {
-    subject.removeDuplicates().eraseToAnyPublisher()
-  }
-}
-
-#endif
