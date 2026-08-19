@@ -28,9 +28,14 @@ import AVFoundation
 /// `AVAudioSession`, and answers a fixed permission state. iOS-only, like the
 /// port itself — the macOS host lane compiles neither. Platform-conditional,
 /// so it is hand-written: an annotation here would generate an unconditional
-/// mock the other platform's lane cannot compile.
+/// mock the other platform's lane cannot compile. Recording members carry the
+/// family mock dialect's names (`<fn>CallCount` — the generated mocks' shape),
+/// so a spec reads one vocabulary whether its double was generated or not;
+/// the permission answer stays a domain-shaped seed.
 public final class FakeAudioSession: AudioSessionConfiguring {
-  public private(set) var activations: [String] = []
+  public private(set) var activatePlaybackCallCount = 0
+  public private(set) var activateRecordingCallCount = 0
+  public private(set) var deactivateCallCount = 0
   public var recordPermissionRequestResult = true
 
   private let permission: Any?
@@ -46,9 +51,9 @@ public final class FakeAudioSession: AudioSessionConfiguring {
     permission = recordPermission
   }
 
-  public func activatePlayback() { activations.append("playback") }
-  public func activateRecording() throws { activations.append("recording") }
-  public func deactivate() { activations.append("deactivate") }
+  public func activatePlayback() { activatePlaybackCallCount += 1 }
+  public func activateRecording() throws { activateRecordingCallCount += 1 }
+  public func deactivate() { deactivateCallCount += 1 }
 
   @available(iOS 17, *)
   public var recordPermission: AVAudioApplication.recordPermission {
