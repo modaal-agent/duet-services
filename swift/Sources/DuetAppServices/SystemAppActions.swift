@@ -22,7 +22,12 @@ public protocol AppActionsProviding: URLOpening, HapticFeedbackProviding,
 
 /// Default implementation backed by the system singletons. Production wires
 /// this; tests wire narrow per-protocol recorders.
-public final class SystemAppActions: AppActionsProviding {
+///
+/// `Sendable` because it holds no state — every member reaches a system
+/// singleton directly. That is what lets a `Working` conformer hold one as a
+/// stored property and forward the four ports to it instead of writing a
+/// second implementation of each side effect.
+public final class SystemAppActions: AppActionsProviding, Sendable {
 
   public init() {}
 

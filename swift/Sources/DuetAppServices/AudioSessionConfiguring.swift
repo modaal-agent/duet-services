@@ -51,7 +51,12 @@ public protocol AudioSessionConfiguring: AnyObject {
 }
 
 /// System-singleton-backed default.
-public final class SystemAudioSession: AudioSessionConfiguring {
+///
+/// `Sendable` because it holds no state — every member reaches
+/// `AVAudioSession.sharedInstance()` or `AVAudioApplication` directly — so a
+/// `Working` conformer can hold one as a stored property and forward this
+/// port to it.
+public final class SystemAudioSession: AudioSessionConfiguring, Sendable {
   public init() {}
 
   public func activatePlayback() {

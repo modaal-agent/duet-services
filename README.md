@@ -8,7 +8,7 @@ apps; depends on `duet`. Three library products, each consumed independently:
 | product | carries |
 | --- | --- |
 | `DuetDiagnostics` | the structured-logging port (`DiagnosticsWorking`) and its `os.Logger`-backed worker, with crash-reporter hooks as the one backend seam |
-| `DuetAppServices` | the inbound-URL/notification registry worker and the system-integration ports (audio session, haptics, pasteboard, system app actions) |
+| `DuetAppServices` | both halves of the app-services boundary: the inbound URL/notification registry worker and the app-lifecycle publisher, and the outbound worker over the system-integration ports (URL opening, pasteboard, haptics, audio session, and the tracking and push-permission prompts) |
 | `DuetTelemetry` | the semantic-event grammar substrate — `TrackedEvent`/`TrackedVerb`/`TrackedParam`, the `AnalyticsTracking` port, `NoOpAnalytics` and `CompositeAnalytics` — and the consent store that gates egress from them: defaults-backed, default-on, Settings-toggled |
 
 Every product carries the `Duet` prefix. A SwiftPM product name is global to
@@ -30,7 +30,7 @@ links only `DuetTelemetry` adds nothing to its resolved graph beyond this
 package and `duet`. Consumers that audit their dependency closure gate on
 that emptiness.
 
-Two contracts an adopting app works with directly:
+Three contracts an adopting app works with directly:
 
 **The verb vocabulary is the app's.** `TrackedVerb` is a token type, not a
 closed enum, and the verbs it declares are a starting point. An app adds its
@@ -56,6 +56,16 @@ the registrar calls `handlersDidRegister()`, then dispatches them against the
 complete, priority-ordered registry. **The app's ingress worker must make that
 call** — without it a launch-tapped universal link waits in the buffer instead
 of reaching a handler.
+
+**The boundary has two workers, and the composition root adopts both.**
+`AppServicesWorker` takes what the system sends the app; `OutboundAppServicesWorker`
+carries what the app asks of the system — opening a URL, the pasteboard,
+haptics, the audio session, and the tracking and push-permission prompts.
+Adopt each on the host (`host.adopt(...)`) and forward it down the graph as
+narrow per-capability ports, so a node that opens a URL takes `URLOpening`
+and its double implements one method. `AppLifecycleObserving` sits beside
+them as a plain publisher: every subscriber gets every transition, so it
+needs no registry and no adoption.
 
 ## Consuming
 

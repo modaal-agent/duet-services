@@ -1,5 +1,52 @@
 # Changelog
 
+## Unreleased
+
+Additive. No existing declaration changes, so a consumer takes this version
+with no edit; the entries below are surface a consumer opts into.
+
+### Added — `AppLifecycleObserving`, the app's own transitions as a publisher
+
+`AppLifecycleEvent` carries the four transitions an app branches on
+(`didBecomeActive`, `willResignActive`, `didEnterBackground`,
+`willEnterForeground`), and `AppLifecycleObserving` publishes them. It sits
+on the inbound side beside the URL and notification handlers and is consumed
+differently: every subscriber gets every event, so there is no priority and
+nothing to claim. The port is annotated `sourcery: CreateMock`, so a
+consumer's generation lane emits the double.
+
+`NotificationCenterAppLifecycle` is the default. It takes the notification
+centre to observe and a `[Notification.Name: AppLifecycleEvent]` map, and
+`init(center:)` fills in UIKit's four names. The map being a parameter is
+what puts the mapping on every lane this package builds on — its logical
+tests run on the host lane over a private `NotificationCenter()` — and lets a
+host whose lifecycle notifications carry other names use the same type.
+
+### Added — the two permission prompts, as platform-neutral ports
+
+`AppTrackingAuthorizationRequesting.requestTrackingAuthorizationIfNeeded()`
+and `PushNotificationAuthorizationRequesting.requestPushAuthorizationIfNeeded()`
+name no framework type in their signatures, so a feature that asks for a
+permission compiles and runs its logical tests on the host lane, over the
+generated doubles, and the system alert stays behind the seam. The push port
+covers the registration that produces the APNS device token
+`AppServicesWorker` dispatches.
+
+### Added — `OutboundAppServicesWorker`, the outbound half of the boundary
+
+`OutboundAppServicesWorking` composes `AppActionsProviding` (URL opening,
+pasteboard, haptics), `AudioSessionConfiguring` and the two prompts;
+`OutboundAppServicesWorker` implements it over the system singletons and is
+a `Working`, so the composition root adopts it with the same bracket as the
+inbound registry worker and forwards it down the graph as narrow
+per-capability ports. iOS-bound, and hand-written doubles are unnecessary:
+each narrow port it carries has its own generated mock.
+
+Its URL, pasteboard, haptic and audio members forward to `SystemAppActions`
+and `SystemAudioSession`, which gain `Sendable` conformances — both hold no
+state, so the worker stores one of each rather than repeating the
+main-thread discipline those calls require.
+
 ## [0.4.0] — 2026-08-20
 
 Minor. Every consumer edits its import lines and its manifest product
