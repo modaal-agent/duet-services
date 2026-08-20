@@ -1,6 +1,6 @@
 // mock-templates:fingerprint v1
 // bundle: 0.6.0
-// config: sha256:5c5169e649712737dd93d5793b1b08c99d576659ca31062d7484664cf68a95ec template=Mocks.swifttemplate args=import=Analytics;import=AppServices;import=Combine;import=Diagnostics;import=DuetShells;import=Foundation
+// config: sha256:7f0d2d096736e33a6eeb946ea1a55eab9d60ccafe4a9b34c4b2a0af4f3f78c86 template=Mocks.swifttemplate args=import=Combine;import=DuetAppServices;import=DuetDiagnostics;import=DuetShells;import=DuetTelemetry;import=Foundation
 // input: sha256:76ff6c9019b2f2e1da5dd77ba82c5e6b034a3bedafc36e901a0c47e70a82f4ab .build/duet-sources/swift/Sources/Duet/CanonicalSumCodable.swift
 // input: sha256:c55bb808eb3d57baeeb2c5e6a0dc42d6711d875dcfb512e683e78cc73e51ecd8 .build/duet-sources/swift/Sources/Duet/Clock.swift
 // input: sha256:d6e7797b1272d79be1d588cecd1eacfcdfa45031b07db165b12244c4bfe2a4c8 .build/duet-sources/swift/Sources/Duet/Effect.swift
@@ -31,32 +31,32 @@
 // input: sha256:321ba2bd5fbe7f6eb9f263d5f6d4a38d84efca3f3862526e65195ccf6163e50d .build/duet-sources/swift/Sources/DuetTesting/TestClock.swift
 // input: sha256:6d37861ac09fee428296077efe86014c9ee45263fac5cac21e989e6cf0d779ec .build/duet-sources/swift/Sources/DuetTesting/TestStore.swift
 // input: sha256:fc10846532f2623d046c4f8e91aa910e9a32094273920fa7e604f716ab802029 .build/duet-sources/swift/Sources/DuetTesting/WorkerTester.swift
-// input: sha256:5e54dc8f276e6b7067c600fc846e6690e1cc437a8f013b05ae172e24367f15cf Sources/Analytics/AnalyticsConsentStore.swift
-// input: sha256:080f0668d810acf21733765e6dcbd2fb2fc66183c41d799e100357161423ae16 Sources/AppServices/AppServicePriority.swift
-// input: sha256:bdd73e7c291c5235844b9be449c60f21440b91dec6dc1a34997a8fb372167bb5 Sources/AppServices/AppServicesWorker.swift
-// input: sha256:320ed09f9f5ad22f443194e228df4a331913001f5abef9c639752e9cbbe2766a Sources/AppServices/AudioSessionConfiguring.swift
-// input: sha256:2aa4a909749a636d177f33c1db75491766c39b42b84c103dd2895e9c415bbfc2 Sources/AppServices/HapticFeedbackProviding.swift
-// input: sha256:723a04d57b1c4e74d02a47b207ae9d5d032732b16b86344a889adac673433521 Sources/AppServices/NotificationHandling.swift
-// input: sha256:7306674289d63ae80b95d6ccbe0154705c51ad90544e6ff550b34be2d0c4092b Sources/AppServices/Pasteboard.swift
-// input: sha256:df06343eb76236492a4c39fd6cac45670933342bc82db9cd7ac8ac6c600dbd9e Sources/AppServices/SystemAppActions.swift
-// input: sha256:d3aba936845a46a70f41b288da057ae6b53690311f25049dfb544b383b8d8283 Sources/AppServices/URLHandling.swift
-// input: sha256:8df3770bd979fd8e4ce7f2eb2b8201403d141acb8435442a9f1f77b36110bec8 Sources/AppServices/URLOpening.swift
-// input: sha256:fc39ebe34198b7cd400f298389a4d012c7fc867955bbcee5e88e59b41d520788 Sources/AppServicesTestSupport/FakeAudioSession.swift
-// input: sha256:1f6fe2dee3d92c61a18544b0bf490ab50946f38f88bbb6734b1e30da1f311f83 Sources/Diagnostics/Diagnostics.swift
-// input: sha256:20d3218bd37aba54d8b8f93ab6ff7a02ea1a54e44e5c05547387e2a4e705decc Sources/Diagnostics/DiagnosticsWorker.swift
-// input: sha256:8565c9c1017b9180460e6090a4ff9415bb1697f8e9c070398e72f01ebb477392 Sources/Telemetry/Analytics.swift
-// input: sha256:2c289ca578296e9c4b171d668dff979326be083e72f59d05d5eaa04a6c09abed Sources/Telemetry/TrackedEvent.swift
-// body: sha256:27f35d00547ca3eaaf7e7a1c8ff007427aa03e6a821aaac3de4e588922921c43
+// input: sha256:080f0668d810acf21733765e6dcbd2fb2fc66183c41d799e100357161423ae16 swift/Sources/DuetAppServices/AppServicePriority.swift
+// input: sha256:bdd73e7c291c5235844b9be449c60f21440b91dec6dc1a34997a8fb372167bb5 swift/Sources/DuetAppServices/AppServicesWorker.swift
+// input: sha256:320ed09f9f5ad22f443194e228df4a331913001f5abef9c639752e9cbbe2766a swift/Sources/DuetAppServices/AudioSessionConfiguring.swift
+// input: sha256:2aa4a909749a636d177f33c1db75491766c39b42b84c103dd2895e9c415bbfc2 swift/Sources/DuetAppServices/HapticFeedbackProviding.swift
+// input: sha256:723a04d57b1c4e74d02a47b207ae9d5d032732b16b86344a889adac673433521 swift/Sources/DuetAppServices/NotificationHandling.swift
+// input: sha256:7306674289d63ae80b95d6ccbe0154705c51ad90544e6ff550b34be2d0c4092b swift/Sources/DuetAppServices/Pasteboard.swift
+// input: sha256:df06343eb76236492a4c39fd6cac45670933342bc82db9cd7ac8ac6c600dbd9e swift/Sources/DuetAppServices/SystemAppActions.swift
+// input: sha256:d3aba936845a46a70f41b288da057ae6b53690311f25049dfb544b383b8d8283 swift/Sources/DuetAppServices/URLHandling.swift
+// input: sha256:8df3770bd979fd8e4ce7f2eb2b8201403d141acb8435442a9f1f77b36110bec8 swift/Sources/DuetAppServices/URLOpening.swift
+// input: sha256:1dc522478689f0740963a63273aaedb8389048bca239e04fb493d809c2878560 swift/Sources/DuetAppServicesTestSupport/FakeAudioSession.swift
+// input: sha256:1f6fe2dee3d92c61a18544b0bf490ab50946f38f88bbb6734b1e30da1f311f83 swift/Sources/DuetDiagnostics/Diagnostics.swift
+// input: sha256:20d3218bd37aba54d8b8f93ab6ff7a02ea1a54e44e5c05547387e2a4e705decc swift/Sources/DuetDiagnostics/DiagnosticsWorker.swift
+// input: sha256:8565c9c1017b9180460e6090a4ff9415bb1697f8e9c070398e72f01ebb477392 swift/Sources/DuetTelemetry/Analytics.swift
+// input: sha256:5e54dc8f276e6b7067c600fc846e6690e1cc437a8f013b05ae172e24367f15cf swift/Sources/DuetTelemetry/AnalyticsConsentStore.swift
+// input: sha256:2c289ca578296e9c4b171d668dff979326be083e72f59d05d5eaa04a6c09abed swift/Sources/DuetTelemetry/TrackedEvent.swift
+// body: sha256:0485ae717919acf93b7402b95403ee632bc547de6323cd49e3450b847a262adf
 // mock-templates:end
 // Generated using Sourcery 2.3.0 — https://github.com/krzysztofzablocki/Sourcery
 // DO NOT EDIT
 
 
-import Analytics
-import AppServices
 import Combine
-import Diagnostics
+import DuetAppServices
+import DuetDiagnostics
 import DuetShells
+import DuetTelemetry
 import Foundation
 
 // MARK: - AnalyticsConsentStoring

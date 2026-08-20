@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Modaal.dev
 // Licensed under the MIT License. See LICENSE file for details.
 
-import AppServices
+import DuetAppServices
 import DuetTesting
 import Foundation
 import XCTest

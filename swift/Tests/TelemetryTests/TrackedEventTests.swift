@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE file for details.
 
 import Foundation
-import Telemetry
+import DuetTelemetry
 import XCTest
 
 /// A verb this package does not declare, added the way an app adds one.

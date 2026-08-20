@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE file for details.
 
 import Combine
-import Diagnostics
+import DuetDiagnostics
 import DuetTesting
 import Foundation
 import XCTest

@@ -1,17 +1,17 @@
 // Copyright (c) 2026 Modaal.dev
 // Licensed under the MIT License. See LICENSE file for details.
 
-import Analytics
+import DuetTelemetry
 import Combine
 import Foundation
 import XCTest
 
 /// Consent-store receipts: default-on with an absent key, persistence by
 /// key, and the subscribe-time emission.
-final class AnalyticsTests: XCTestCase {
+final class AnalyticsConsentStoreTests: XCTestCase {
 
   private var defaults: UserDefaults!
-  private let suiteName = "services-tests.analytics"
+  private let suiteName = "telemetry-tests.analytics-consent"
 
   override func setUp() {
     super.setUp()

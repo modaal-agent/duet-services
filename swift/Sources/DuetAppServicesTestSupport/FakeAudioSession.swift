@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Modaal.dev
 // Licensed under the MIT License. See LICENSE file for details.
 
-// The AppServices product's shared test double for its one
+// The DuetAppServices product's shared test double for its one
 // platform-conditional port. This product is linked by test targets only —
 // a production target never declares it, so the fake stays out of release
 // binaries by link topology rather than by a build-configuration gate.
@@ -17,7 +17,7 @@
 // platform-conditional ports and `@available` members; this double is
 // generated once that lands, and this product retires with it.
 
-import AppServices
+import DuetAppServices
 import Foundation
 
 #if os(iOS)

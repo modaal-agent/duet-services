@@ -15,6 +15,11 @@
   port (protocol), a default implementation, and logical tests here. Vendor
   SDKs never enter this package's dependency graph — a backend plugs in
   through a port, in the consumer's own code.
+- **Every product name carries the `Duet` prefix.** A SwiftPM product name is
+  global to the resolved graph and a module name is global to the file that
+  imports it; a bare name like `AppServices` or `Diagnostics` collides with an
+  app's own library or shadows its own type of that name. A new product is
+  `Duet<Thing>`, and its source directory is named for it.
 - **Test doubles never live in a product's `Sources/`, `#if DEBUG`
   included.** A DEBUG gate keeps a double out of release binaries, not out
   of the module's API surface or its compile graph. A double one test target
@@ -26,8 +31,8 @@
   every consumer that runs one. Platform-conditional doubles stay
   hand-written in the TestSupport target, behind the port's own platform
   condition.
-- **`Telemetry` declares no target dependencies.** Consumers gate on that
-  emptiness; a dependency added to the `Telemetry` target is a breaking
+- **`DuetTelemetry` declares no target dependencies.** Consumers gate on that
+  emptiness; a dependency added to the `DuetTelemetry` target is a breaking
   change, not an implementation detail.
 - **Files under `Generated/` are build products.** Change the annotated
   protocol and re-run `scripts/generate-mocks.sh`; CI fails on drift

@@ -88,17 +88,17 @@ GENERATORS=(
 # The shared services' test doubles: every platform-neutral protocol annotated
 # `CreateMock`, in one file in the Services test target.
 generator_services_mocks() {
-  OUT_DIR="$GIT_ROOT/Tests/ServicesTests/Generated"
+  OUT_DIR="$GIT_ROOT/swift/Tests/ServicesTests/Generated"
   OUT_FILE="ServicesMocks.swift"
   TEMPLATE="Mocks.swifttemplate"
   derive_source_roots "$GIT_ROOT"
   SOURCE_ROOTS=("${DERIVED_SOURCE_ROOTS[@]}")
   TEMPLATE_ARGS=(
-    --args "import=Analytics"
-    --args "import=AppServices"
-    --args "import=Combine"     # AnyCancellable
-    --args "import=Diagnostics"
-    --args "import=DuetShells"  # Working
+    --args "import=Combine"          # AnyCancellable
+    --args "import=DuetAppServices"
+    --args "import=DuetDiagnostics"
+    --args "import=DuetShells"       # Working
+    --args "import=DuetTelemetry"    # AnalyticsConsentStoring
     --args "import=Foundation"
   )
 }
@@ -175,11 +175,19 @@ fi
 # package MANIFEST (`swift package dump-package` — a manifest compile, no
 # resolution, no network), never from a hand-written list:
 #
-#   - the package's own Sources/;
-#   - every PATH dependency's Sources/ (the Duet family checkout keeps its
-#     Swift half under swift/Sources — both spellings are tried);
+#   - this package's own Swift targets;
+#   - every PATH dependency's Swift targets;
 #   - a published (URL + exact pin) Duet dependency, cloned at the pin when no
 #     path form is present.
+#
+# Each package's target directories come from that package's own resolved
+# layout (`swift package describe --type json`, the same manifest compile),
+# so `Sources/<Target>`, `swift/Sources/<Target>` — the layout this repo and
+# the framework use, leaving the repository root free for the other language
+# halves — and a `path:` of the package's choosing all scan without a rule
+# here. A directory SwiftPM does not compile as a Swift target is not a root:
+# a test target parked under `Sources/`, a binary target's xcframework, a C
+# target, a plugin.
 #
 # `--check` walks the same rung: validation re-hashes the recorded inputs, so
 # the same source set has to be on disk — seconds of clone, no toolchain.
@@ -187,6 +195,55 @@ fi
 # Remote third-party packages are deliberately out: none declares a protocol
 # the annotated ones refine, and parsing them costs seconds per run for
 # nothing.
+# `describe_package_targets <package_dir>` prints one absolute directory per
+# Swift target the package compiles, sorted so a run's `--sources` list — and
+# so the order the fingerprint's inputs are enumerated in — does not move.
+# Non-zero when the layout cannot be read.
+describe_package_targets() {  # <package_dir>
+  local package_dir="$1" description
+  # The manifest has to be HERE. `swift package` searches ancestors when the
+  # directory it is pointed at carries none, so a dependency path that no
+  # longer holds a package would otherwise be described as whichever repo
+  # encloses it — a scan of the wrong tree, reported as a success.
+  [ -f "$package_dir/Package.swift" ] || return 1
+  # stdin closed: this runs inside a `while read` over the manifest's path
+  # dependencies, and a child that reads stdin would eat that loop's input.
+  description="$(cd "$package_dir" && swift package describe --type json < /dev/null)" || return 1
+  # Target paths are joined to the directory the CALLER named, never to the
+  # root `describe` reports: that one has symlinks resolved (`/tmp/x` becomes
+  # `/private/tmp/x`), and a root outside the caller's path namespace
+  # enumerates outside the fingerprint root the CLI is given.
+  printf '%s' "$description" | python3 -c "
+import json, os, sys
+d = json.load(sys.stdin)
+root = sys.argv[1]
+dirs = []
+for t in d['targets']:
+    if t.get('module_type') != 'SwiftTarget' or t.get('type') == 'test':
+        continue
+    path = t['path']
+    dirs.append(path if path.startswith('/') else os.path.join(root, path))
+for path in sorted(dirs):
+    print(path)
+" "$package_dir"
+}
+
+# A package whose layout cannot be read STOPS the run, rather than
+# contributing no roots: a mock generated over a scan that skipped a package
+# compiles here and fails in the test target with "does not conform to
+# protocol", which is the failure this whole rung exists to prevent.
+append_target_dirs() {  # <package_dir> — appends to DERIVED_SOURCE_ROOTS
+  local package_dir="$1" dirs dir
+  if ! dirs="$(describe_package_targets "$package_dir")"; then
+    echo "generate-mocks: cannot read the Swift target layout of $package_dir" >&2
+    exit 1
+  fi
+  while IFS= read -r dir; do
+    [ -n "$dir" ] || continue
+    DERIVED_SOURCE_ROOTS+=("$dir")
+  done <<< "$dirs"
+}
+
 read_manifest() {  # <manifest json> <python expression over `d`, printing lines>
   printf '%s' "$1" | python3 -c "
 import json, sys
@@ -199,7 +256,8 @@ derive_source_roots() {  # <package_dir>
   local package_dir="$1"
   local manifest_json
   manifest_json="$(cd "$package_dir" && swift package dump-package)"
-  DERIVED_SOURCE_ROOTS=("$package_dir/Sources")
+  DERIVED_SOURCE_ROOTS=()
+  append_target_dirs "$package_dir"
 
   local path
   while IFS= read -r path; do
@@ -208,13 +266,7 @@ derive_source_roots() {  # <package_dir>
       /*) ;;
       *) path="$package_dir/$path" ;;
     esac
-    if [ -d "$path/Sources" ]; then
-      DERIVED_SOURCE_ROOTS+=("$path/Sources")
-    elif [ -d "$path/swift/Sources" ]; then
-      DERIVED_SOURCE_ROOTS+=("$path/swift/Sources")
-    else
-      echo "generate-mocks: path dependency has no Sources/ — skipping $path" >&2
-    fi
+    append_target_dirs "$path"
   done < <(read_manifest "$manifest_json" "
 for dep in d['dependencies']:
     for fs in dep.get('fileSystem', []):
@@ -244,12 +296,7 @@ for dep in d['dependencies']:
       git clone --quiet --depth 1 --branch "$duet_version" \
         -c advice.detachedHead=false "$duet_url" "$DUET_CACHE"
     fi
-    for candidate in "swift/Sources" "Sources"; do
-      if [ -d "$DUET_CACHE/$candidate" ]; then
-        DERIVED_SOURCE_ROOTS+=("$DUET_CACHE/$candidate")
-        break
-      fi
-    done
+    append_target_dirs "$DUET_CACHE"
   fi
 }
 

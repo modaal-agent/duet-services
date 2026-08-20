@@ -1,5 +1,62 @@
 # Changelog
 
+## [0.4.0] — 2026-08-20
+
+Minor. Every consumer edits its import lines and its manifest product
+entries; no port, default, worker, or type name changed, so nothing beyond
+those two edits moves.
+
+| was | is |
+| --- | --- |
+| `import Telemetry` | `import DuetTelemetry` |
+| `import Analytics` | `import DuetTelemetry` |
+| `import AppServices` | `import DuetAppServices` |
+| `import Diagnostics` | `import DuetDiagnostics` |
+| `import AppServicesTestSupport` | `import DuetAppServicesTestSupport` |
+
+A manifest's `.product(name:package:)` entries take the same names. A file
+that imported both `Analytics` and `Telemetry` keeps one import line.
+
+### Changed — every product carries the `Duet` prefix
+
+A SwiftPM product name is global to the resolved graph and a module name is
+global to the file that imports it. `Analytics`, `AppServices`,
+`Diagnostics` and `Telemetry` are names an app wants for its own libraries,
+and `Diagnostics` additionally shadowed this package's own `Diagnostics`
+protocol in any file importing the module (`Diagnostics.LogLevel` resolved
+the leading name to the protocol). The products are `DuetDiagnostics`,
+`DuetAppServices`, `DuetAppServicesTestSupport` and `DuetTelemetry`; each
+source directory is named for its product.
+
+### Changed — the consent store ships in `DuetTelemetry`
+
+`AnalyticsConsentStoring` and `UserDefaultsAnalyticsConsentStore` are the
+opt-out gate for the analytics pipeline whose ports and sinks
+`DuetTelemetry` already carries, and the two shipped together in every
+consumer. They move into `DuetTelemetry`; the `Analytics` product retires.
+The types are unchanged, including the `sourcery: CreateMock` and
+`sourcery: subject = "CurrentValue"` annotations, so a generated
+`AnalyticsConsentStoringMock` is the same class under a new import.
+`DuetTelemetry`'s dependency-free contract holds — the consent store uses
+Foundation and Combine only.
+
+### Changed — the Swift half lives under `swift/`
+
+Sources are at `swift/Sources/<Product>` and tests at `swift/Tests/<Target>`,
+with the manifest still at the repository root: SwiftPM resolves a
+`.package(url:)` against the root only, and the root is where the package's
+other language halves attach.
+
+A consumer's mock-generation lane derives this repo's scan roots from the
+manifest, and reading `swift/Sources` has a toolchain floor: `duet` 0.17.0.
+Below it the derivation looks for `Sources` alone, contributes no roots for
+this package, and mocks over the ports declared here generate incomplete —
+which surfaces in the consumer's test target as "does not conform to
+protocol". Bump `parity/duet-tools.ref` to 0.17.0 in the same commit that
+takes this version. Generated files carrying this repo's paths in their
+fingerprint input lists re-pin on the next regeneration, so run generation
+rather than `--check` on that bump.
+
 ## [0.3.0] — 2026-08-19
 
 Minor. Two migration steps, both tests-only — production targets are

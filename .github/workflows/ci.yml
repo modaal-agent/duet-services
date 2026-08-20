@@ -42,7 +42,7 @@ jobs:
             echo "- toolchain: $(xcodebuild -version | tr '\n' ' ')"
             echo "- swift: $(swift --version 2>&1 | head -1)"
             echo "- lane: ${{ matrix.xcode != '' && 'the GA floor (pinned)' || 'the newest proven line (image default)' }}"
-            echo "- builds the four products against the pinned duet tag; runs the service + telemetry suites"
+            echo "- builds the products against the pinned duet tag; runs the service + telemetry suites"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The iOS compile gate: the swift job's `swift test` runs on macOS, so
