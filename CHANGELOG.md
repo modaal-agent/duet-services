@@ -32,6 +32,14 @@ generated doubles, and the system alert stays behind the seam. The push port
 covers the registration that produces the APNS device token
 `AppServicesWorker` dispatches.
 
+### Added — `AnalyticsTracking` carries `sourcery: CreateMock`
+
+The port is unconditional and its four methods take no framework type, so a
+consumer's generation lane emits `AnalyticsTrackingMock` — a recorder with
+`trackArgs`, `identifyArgs`, `resetCallCount` and `setOptedOutArgs` — into
+its own test target. A consumer that hand-wrote a recording sink for this
+port deletes it and takes the generated double on its next regeneration.
+
 ### Added — `OutboundAppServicesWorker`, the outbound half of the boundary
 
 `OutboundAppServicesWorking` composes `AppActionsProviding` (URL opening,

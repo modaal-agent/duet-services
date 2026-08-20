@@ -10,6 +10,8 @@ import Foundation
 /// render events through `encodedName()` and `encodedProperties()` — the
 /// grammar owns the taxonomy; sinks own transport. Until a vendor lands the
 /// composition root wires `NoOpAnalytics` — a working default, not a stub.
+///
+/// sourcery: CreateMock
 public protocol AnalyticsTracking: AnyObject {
   /// Emit a typed event. A no-op when opted out or when no vendor is wired.
   func track(event: TrackedEvent)
