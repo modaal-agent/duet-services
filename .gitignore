@@ -2,3 +2,6 @@
 .swiftpm/
 xcuserdata/
 .DS_Store
+.gradle/
+.kotlin/
+build/

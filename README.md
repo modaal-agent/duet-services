@@ -29,6 +29,18 @@ analytics or crash backend by conforming to a port in one file of its own.
 only `DuetTelemetry` resolves this package and `duet` and nothing else.
 Consumers that audit their dependency closure gate on that.
 
+`DuetTelemetry` has a Kotlin twin, `dev.modaal.duet.services:telemetry` — a
+Kotlin Multiplatform artifact (jvm, iosArm64, iosSimulatorArm64, macosArm64)
+published from the same release tags to the family's Maven repository. Its
+commonMain carries the same grammar, encoding rule and tracking port; its
+jvm side carries the same worker-typed sink surface. The two halves encode
+identically by test: the fixtures under `contracts/telemetry-twin/` are
+written by the Kotlin suite's encoders and decoded by the Swift suite, so a
+dual-language app can declare an event once — verbs keep their stored
+display spelling across the boundary — and convert crossing values
+losslessly. Its dependency rule is the Swift product's: the family plus
+`kotlinx-serialization`, nothing else.
+
 The contracts an adopting app works with directly:
 
 **The verb vocabulary is the app's.** `TrackedVerb` is a token type, not a
@@ -121,6 +133,21 @@ import DuetDiagnostics
 import DuetTelemetry
 ```
 
+The Kotlin artifact resolves from the family's Maven repository — one
+repository block covers every `dev.modaal.*` artifact:
+
+```kotlin
+repositories {
+  maven {
+    url = uri("https://modaal-agent.github.io/maven")
+    content { includeGroupByRegex("""dev\.modaal(\..*)?""") }
+  }
+}
+dependencies {
+  api("dev.modaal.duet.services:telemetry:<version>")
+}
+```
+
 ## Layout
 
 The Swift half lives under `swift/`, with the manifest at the repository
@@ -138,3 +165,10 @@ root stays free for the other language halves.
   `scripts/generate-mocks.sh`, never hand-edited).
 - `swift/Tests/TelemetryTests` — the grammar substrate's encoding-rule pins,
   compiled against `DuetTelemetry` alone.
+- `kotlin/` — the Kotlin half: the `:telemetry` KMP module, the Gradle
+  wrapper, and `kotlin/scripts/publish-maven.sh`, the staging/atomicity/
+  immutability gate the tag-triggered publish workflow runs.
+- `contracts/telemetry-twin/` — the twin contract's fixtures: committed
+  build products of the Kotlin suite (regenerate with
+  `cd kotlin && ./gradlew :telemetry:jvmTest -PregenFixtures=1`), read by
+  both languages' suites in CI.

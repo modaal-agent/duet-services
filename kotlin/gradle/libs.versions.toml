@@ -1,0 +1,18 @@
+[versions]
+kotlin = "2.3.21"
+coroutines = "1.10.2"
+serialization = "1.9.0"
+# The duet framework release this half builds against — the same release line
+# the Swift manifest pins (`exact:` in ../Package.swift). Keep the two in
+# step: a framework re-pin is one commit moving both.
+duet = "0.4.0"
+
+[libraries]
+duet-kernel = { module = "dev.modaal.duet:kernel", version.ref = "duet" }
+duet-shells-compose = { module = "dev.modaal.duet:shells-compose", version.ref = "duet" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

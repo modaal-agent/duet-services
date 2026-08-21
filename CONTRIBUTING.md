@@ -42,7 +42,19 @@
   (`--check` validates each file's fingerprint block — a stale input, a
   source file added after generation, or a hand-edit turns it red, with no
   Sourcery run). Never hand-edit a generated file.
+- **The two language halves move together.** A grammar or port change in
+  `swift/Sources/DuetTelemetry` lands with its Kotlin twin in
+  `kotlin/telemetry` and a regenerated `contracts/telemetry-twin/` in the
+  same commit — the fixtures are committed build products of the Kotlin
+  suite (`cd kotlin && ./gradlew :telemetry:jvmTest -PregenFixtures=1`), and
+  both CI jobs fail on drift. The Kotlin artifact holds the same dependency
+  rule as `DuetTelemetry`: `dev.modaal.duet` artifacts plus
+  `kotlinx-serialization`, nothing else.
 - **A release cut sets the version in the commit that gets tagged** (the
-  family convention — see the `duet` repo's CONTRIBUTING).
+  family convention — see the `duet` repo's CONTRIBUTING). One tag releases
+  both halves: SwiftPM resolves the Swift products from the tag directly,
+  and the publish workflow derives the Maven version from the same tag
+  (`-PpublishVersion` — the `-SNAPSHOT` literal in `kotlin/build.gradle.kts`
+  is the mavenLocal development default, never published).
 - **Licensing**: MIT, inbound = outbound; submitting a PR means your
   contribution is licensed under the [MIT License](LICENSE).

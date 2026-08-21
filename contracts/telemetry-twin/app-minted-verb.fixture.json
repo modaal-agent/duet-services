@@ -1,0 +1,9 @@
+{
+    "event": {
+        "subject": "Report",
+        "verb": "Archived",
+        "params": []
+    },
+    "encodedName": "Report Archived",
+    "encodedProperties": {}
+}

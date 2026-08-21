@@ -1,0 +1,9 @@
+{
+    "event": {
+        "subject": "Profile",
+        "verb": "Viewed",
+        "params": []
+    },
+    "encodedName": "Profile Viewed",
+    "encodedProperties": {}
+}

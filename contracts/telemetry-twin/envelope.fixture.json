@@ -1,0 +1,27 @@
+{
+    "event": {
+        "subject": "Item Load",
+        "verb": "Failed",
+        "params": [
+            {
+                "case": "string",
+                "value": {
+                    "key": "reason",
+                    "value": "offline"
+                }
+            },
+            {
+                "case": "bool",
+                "value": {
+                    "key": "retried",
+                    "value": false
+                }
+            }
+        ]
+    },
+    "encodedName": "Item Load Failed",
+    "encodedProperties": {
+        "reason": "offline",
+        "retried": false
+    }
+}

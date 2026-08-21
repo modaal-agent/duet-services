@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.6.0] — 2026-08-21
+
+`DuetTelemetry` gains its Kotlin twin: `dev.modaal.duet.services:telemetry`,
+a Kotlin Multiplatform artifact (jvm, iosArm64, iosSimulatorArm64,
+macosArm64) published to the family's Maven repository by the tag-triggered
+publish workflow — one release tag now covers both halves. The Swift
+products are byte-identical to 0.5.0; a Swift-only consumer re-pins with no
+code change.
+
+### Added — the Kotlin telemetry artifact
+
+`commonMain` carries the grammar (`TrackedEvent`, `TrackedVerb`,
+`TrackedParam`), the vendor-name encoding rule (`encodedName()` /
+`encodedProperties()`), the wire-form serializers, and the ports
+(`AnalyticsTracking`, `AnalyticsProviding`). The jvm side adds the
+worker-typed sink surface — `AnalyticsTrackingWorking` and the
+`AnalyticsTrackingWorker` fan-out — because `Working` lives in
+`dev.modaal.duet:shells-compose`, a JVM module, and the Apple side of a
+dual-language app types its sinks on the native Swift substrate and
+converts crossing values app-side.
+
+`TrackedVerb` is an open token type, matching the Swift declaration: it
+stores the display spelling (`rendered`), the starter vocabulary is a set
+of companion values (`TrackedVerb.Viewed`, …), an app mints its own verb in
+one line, and the bare token is the wire form. An app replacing its own
+copy of this substrate maps:
+
+| was (app-local substrate) | is |
+| --- | --- |
+| `CompositeAnalytics(sinks, initiallyOptedOut)` | `AnalyticsTrackingWorker(sinks, isEnabled)` |
+| `NoOpAnalytics()` | `AnalyticsTrackingWorker(emptyList())` |
+| `analytics.setOptedOut(x)` | `analytics.setEnabled(!x)` |
+| `enum class TrackedVerb(val rendered: …)` | the open token type; entry call sites (`TrackedVerb.Viewed`) compile unchanged |
+
+The enum-to-token move changes the verb's serialized form from the entry
+name to the stored display spelling — the two differ only for multi-word
+verbs (`"SignedOut"` → `"Signed Out"`), and the display spelling is what
+the Swift twin already encodes.
+
+### Added — the twin contract
+
+`contracts/telemetry-twin/` pins serialized equivalence: the Kotlin suite
+declares the sample events and writes each fixture through its own encoders;
+the Swift suite decodes the same files and asserts the vendor-facing name,
+the property bag, and the re-encoded wire form agree. Both CI jobs gate on
+the committed fixtures, so a grammar edit that lands in one language fails
+the other's lane. Regenerate after a deliberate grammar change with
+`cd kotlin && ./gradlew :telemetry:jvmTest -PregenFixtures=1` and commit the
+diff.
+
 ## [0.5.0] — 2026-08-20
 
 Minor, and the largest migration this package has asked for. `DuetAppServices`

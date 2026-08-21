@@ -45,6 +45,33 @@ jobs:
             echo "- builds the products against the pinned duet tag; runs the service + telemetry suites"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  kotlin:
+    # macOS: the KMP module declares apple targets (macosArm64/ios*) — a Linux
+    # host would silently disable them. Pure KMP, no Android SDK needed. The
+    # jvmTest suite includes the twin-contract fixture check: the committed
+    # fixtures under contracts/telemetry-twin must carry exactly the Kotlin
+    # encoders' output (the swift job's TelemetryTests read the same files).
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Kotlin half (KMP suite)
+        id: tests
+        run: cd kotlin && ./gradlew build --console=plain
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### kotlin — ${{ steps.tests.outcome == 'success' && '✅ passed' || '❌ failed' }}"
+            echo ""
+            echo "- jdk: $(java -version 2>&1 | head -1)"
+            echo "- suites: \`:telemetry\` KMP build + jvmTest (grammar pins, fan-out receipts, twin-contract fixtures)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # The iOS compile gate: the swift job's `swift test` runs on macOS, so
   # every `#if os(iOS)` file — the audio-session port, FakeAudioSession, the
   # APNS half of InboundAppServicesWorker — is invisible to it. Build-only for a

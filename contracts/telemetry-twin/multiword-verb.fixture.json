@@ -1,0 +1,9 @@
+{
+    "event": {
+        "subject": "Session",
+        "verb": "Signed Out",
+        "params": []
+    },
+    "encodedName": "Session Signed Out",
+    "encodedProperties": {}
+}
