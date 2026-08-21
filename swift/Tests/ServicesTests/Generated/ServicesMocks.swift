@@ -56,6 +56,22 @@
 // input: sha256:20d3218bd37aba54d8b8f93ab6ff7a02ea1a54e44e5c05547387e2a4e705decc swift/Sources/DuetDiagnostics/DiagnosticsWorker.swift
 // input: sha256:07d6131983556c8a8eb7e1a8ef534081da8b902ba99487c2c3b044d2d9b14dbb swift/Sources/DuetTelemetry/Analytics.swift
 // input: sha256:2c289ca578296e9c4b171d668dff979326be083e72f59d05d5eaa04a6c09abed swift/Sources/DuetTelemetry/TrackedEvent.swift
+// input: sha256:76cef955f497a772436b118c5b222ea9e12514fbe83b6ce732447084feb2d87a swift/Sources/DuetTheming/Appearance/Appearance.swift
+// input: sha256:75bffe62242fc8f12bd4e1effbeac7398c4f6c63b5391deb685b12190eaa1568 swift/Sources/DuetTheming/Appearance/PreferredAppearance.swift
+// input: sha256:55cee3a5a6d60920fdbbe25eae2727542dcf21bf0d578583019f057a0b84d39a swift/Sources/DuetTheming/Asset/AssetKeyWrappable.swift
+// input: sha256:b911ebd2a87fe02b4abfe10fb76f38b4240b57e42968ea152f08029b747fc70e swift/Sources/DuetTheming/Asset/Assetable.swift
+// input: sha256:8caa0400d5636368e2ec95af2c9ab4f319002e25dd697f44fedfc20c27ddbcee swift/Sources/DuetTheming/Asset/EmptyAsset.swift
+// input: sha256:8ef50a68a41d432c63c8cc66ba927500d2641d6ce44bb9a0a405ee704e52ad93 swift/Sources/DuetTheming/Asset/Sets/ColorSet.swift
+// input: sha256:bf8a3a3534c462c904931df0bbbb3613d1f342966430cbe62c546f243a009db0 swift/Sources/DuetTheming/Asset/Sets/FontSet.swift
+// input: sha256:aaefd4439242d60827dae9a2c640dda44408fb87d68173698f5e26d022109c9f swift/Sources/DuetTheming/Asset/Sets/GradientSet.swift
+// input: sha256:12b88a44f2ce016a29a58101c95a50d3ed2303fdadc435a4c105e00e9874a25a swift/Sources/DuetTheming/Asset/Sets/ImageSet.swift
+// input: sha256:b684c0ad116ee8a6384b234429e50a170d924073d4fc4d8bbc3e33b7a6d5f283 swift/Sources/DuetTheming/Theme/Theme.swift
+// input: sha256:cbd236f47ab53a593b11a8e0da5bb0c77d362e7d29b612858573e524ee32b459 swift/Sources/DuetTheming/Theme/ThemeDefaulting.swift
+// input: sha256:4a703e2a9bbda3b12261649c8f9ae05358c18c0c4c055630ee5de156f10adcdd swift/Sources/DuetTheming/Theme/Themeable.swift
+// input: sha256:7b81b19ef7777b50adf7c04356f403216d01f55b35955aa80a923d0bdac8b29a swift/Sources/DuetTheming/Theme/Themed.swift
+// input: sha256:cbadafce5ee9ff307d1e42362cc6a0fd0023d7d373396d77e392013a1d7c527a swift/Sources/DuetTheming/ThemeEnvironment.swift
+// input: sha256:abec8ac31edc61c83ebbd493c0dd25297137de8ce2b20654b62b3cb3eb662a07 swift/Sources/DuetTheming/ThemeProvider/ThemePersistentStorage.swift
+// input: sha256:2b50c937e5a83ff063ff5fb39e59d703854c9ef1e18cf739dfd640c050dadee5 swift/Sources/DuetTheming/ThemeProvider/ThemeProvider.swift
 // body: sha256:faec7634e600c1165b0cf805486c2958d3561d46ac17731445f3b9bbe2ca0a9e
 // mock-templates:end
 // Generated using Sourcery 2.3.0 — https://github.com/krzysztofzablocki/Sourcery

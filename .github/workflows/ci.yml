@@ -42,7 +42,7 @@ jobs:
             echo "- toolchain: $(xcodebuild -version | tr '\n' ' ')"
             echo "- swift: $(swift --version 2>&1 | head -1)"
             echo "- lane: ${{ matrix.xcode != '' && 'the GA floor (pinned)' || 'the newest proven line (image default)' }}"
-            echo "- builds the products against the pinned duet tag; runs the service + telemetry suites"
+            echo "- builds the products against the pinned duet tag; runs the service and telemetry suites — DuetTheming and its suite are iOS-only and run in the \`ios\` job"
           } >> "$GITHUB_STEP_SUMMARY"
 
   kotlin:
@@ -74,21 +74,20 @@ jobs:
             echo "- suites: \`:telemetry\` (grammar pins, fan-out receipts, twin-contract fixtures) and \`:theming\` (role vocabulary, token and appearance resolution) — KMP build + jvmTest"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # The iOS compile gate: the swift job's `swift test` runs on macOS, so
-  # every `#if os(iOS)` file — the audio-session port, FakeAudioSession, the
-  # APNS half of InboundAppServicesWorker — is invisible to it. Build-only for a
-  # simulator destination; the logical tests run on the host lanes above.
-  ios-build:
+  # The iOS lane: the swift job's `swift test` runs on macOS, so every
+  # `#if os(iOS)` file — the audio-session port, FakeAudioSession, the APNS
+  # half of InboundAppServicesWorker, and every file in DuetTheming — is
+  # invisible to it. `scripts/test-ios.sh` builds every target for a simulator
+  # destination and runs ThemingTests on a booted simulator, which is what
+  # those tests need: they mount SwiftUI trees under a `UIWindow`.
+  # Contributors run the same file locally.
+  ios:
     runs-on: macos-26
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-      - name: Build the package for iOS Simulator
-        run: |
-          xcodebuild build \
-            -scheme duet-services-Package \
-            -destination 'generic/platform=iOS Simulator' \
-            -skipMacroValidation
+      - name: Build for iOS Simulator and run the simulator-hosted suite
+        run: scripts/test-ios.sh
 
   # The generated-code staleness gate: files under Generated/ are build
   # products carrying a fingerprint block (bundle tag, generator config,

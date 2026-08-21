@@ -11,7 +11,7 @@ import PackageDescription
 // name its own library `AppServices` or its own protocol `Diagnostics` without
 // colliding with this package.
 //
-// Three products, each consumed independently:
+// Four products, each consumed independently:
 //
 //   DuetDiagnostics   the structured-logging port and its worker
 //   DuetAppServices   the two app-services workers — inbound (URL and
@@ -24,6 +24,13 @@ import PackageDescription
 //                     the `duet` package: a consumer that links only
 //                     DuetTelemetry adds no third-party code to its resolved
 //                     graph beyond this package and `duet`.
+//   DuetTheming       the theme engine the app's catalog plugs into — asset
+//                     keys resolved to a color, font, image or gradient for
+//                     the current theme and appearance, persistence of the
+//                     user's choice, and the SwiftUI environment the view
+//                     layer reads. It declares no dependencies at all, not
+//                     even inside this package: an app that wants a theme
+//                     engine resolves nothing else to get one.
 //
 // plus DuetAppServicesTestSupport, the TestSupport library carrying the one
 // hand-written double (`FakeAudioSession` — its port is iOS-only, so no
@@ -63,6 +70,7 @@ let package = Package(
     .library(name: "DuetAppServices", targets: ["DuetAppServices"]),
     .library(name: "DuetAppServicesTestSupport", targets: ["DuetAppServicesTestSupport"]),
     .library(name: "DuetTelemetry", targets: ["DuetTelemetry"]),
+    .library(name: "DuetTheming", targets: ["DuetTheming"]),
   ],
   dependencies: [
     // The duet framework, pinned EXACTLY: pre-1.0 minors are breaking by
@@ -111,6 +119,17 @@ let package = Package(
       path: "swift/Sources/DuetTelemetry",
       swiftSettings: strictConcurrency
     ),
+    // Dependency-free, deliberately: a project that wants a theme engine
+    // should not have to resolve anything else to get one, so this target
+    // names no product — not even a `duet` one. It imports UIKit and SwiftUI
+    // and is iOS-only; every file is `#if os(iOS)` whole-file, so the macOS
+    // host lane compiles the target to nothing and `ios` (below) is where it
+    // builds and its suite runs.
+    .target(
+      name: "DuetTheming",
+      path: "swift/Sources/DuetTheming",
+      swiftSettings: strictConcurrency
+    ),
     // The generator emits every annotated port in this package into one file
     // in this target, so the target links every product those ports name.
     // The analytics fan-out's own tests live here too — they drive it through
@@ -132,6 +151,17 @@ let package = Package(
         .target(name: "DuetTelemetry")
       ],
       path: "swift/Tests/TelemetryTests",
+      swiftSettings: strictConcurrency
+    ),
+    // Renders real SwiftUI trees under a `UIWindow`, so it needs a simulator
+    // host: `scripts/test-ios.sh` runs it, and the macOS host lane compiles
+    // it to nothing behind the same `#if os(iOS)`.
+    .testTarget(
+      name: "ThemingTests",
+      dependencies: [
+        .target(name: "DuetTheming")
+      ],
+      path: "swift/Tests/ThemingTests",
       swiftSettings: strictConcurrency
     ),
   ]

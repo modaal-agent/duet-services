@@ -2,14 +2,39 @@
 
 ## [0.7.0] — 2026-08-21
 
-A second Kotlin artifact: `dev.modaal.duet.services:theming`, the
-platform-free theming engine, published to the family's Maven repository on
-the same targets and from the same release tag as `telemetry`. The Swift
-products are byte-identical to 0.6.0; a Swift-only consumer re-pins with no
-code change, and a Kotlin consumer that wants only telemetry keeps the one
-coordinate.
+The theming layer, in both languages: a fourth Swift library product,
+`DuetTheming`, and a second Kotlin artifact,
+`dev.modaal.duet.services:theming`, the platform-free theming engine,
+published to the family's Maven repository on the same targets and from the
+same release tag as `telemetry`. The four products that shipped in 0.6.0 are
+byte-identical; a consumer that links only those re-pins with no code change,
+and a Kotlin consumer that wants only telemetry keeps the one coordinate.
 
-### Added — the theming engine artifact
+### Added — the `DuetTheming` Swift product
+
+A theme engine that takes the app's catalog by conformance. `Theme`, `Themed`
+and `Assetable` declare which color, font, image and gradient each theme has,
+over the app's own asset-key enums; `Appearance<T>` covers light and dark in
+one entry (`.static`, `.auto(light:dark:)`, or `.dynamic` from the trait
+collection — for `UIColor`, the latter two resolve to a dynamic `UIColor`
+while the preferred appearance is `.system`, so a color already handed to a
+view keeps following the system setting); `ThemeProvider` resolves an asset
+key against the current theme and appearance and persists the user's choice
+through `ThemeProviderPersisting`; and `ThemeScope` and
+`ThemedHostingController` publish the provider to a SwiftUI tree, which a
+view reads as `@Environment(\.theme)` without declaring a parameter.
+
+The target declares no dependencies at all — not a third-party one, and not a
+`duet` product: an app that wants a theme engine resolves this package and
+nothing else to get one. It imports UIKit and SwiftUI and is iOS-only, so
+every file is `#if os(iOS)` whole-file and `swift test` on macOS compiles the
+target to nothing.
+
+Fourteen of its sixteen files are derived from SwiftTheming (MIT) and carry a
+"Based on" line naming it. `NOTICE`, new in this release, reproduces that
+license and lists the dependencies resolved at build time.
+
+### Added — the Kotlin theming engine artifact
 
 `commonMain` carries the value types a palette entry takes — `ColorToken`
 (`0xAARRGGBB` per appearance, `auto` or `fixed`) and `FontToken` (family,
@@ -44,6 +69,15 @@ suite pins both role counts so that a change to either is deliberate.
 `telemetry` and `theming`, each as the root publication plus `-jvm`,
 `-iosarm64`, `-iossimulatorarm64` and `-macosarm64`. The atomicity assertion
 covers all ten — a release stages every coordinate or writes none.
+
+### Changed — the iOS CI lane
+
+`scripts/test-ios.sh` builds every target for a simulator destination and
+then runs `ThemingTests` on a booted simulator: those tests mount SwiftUI
+trees under a `UIWindow` and assert on what a view resolved from the
+environment, which needs a UIKit runtime. CI's `ios` job runs that same
+script, and so covers what the previous build-only step covered plus the new
+suite.
 
 ## [0.6.0] — 2026-08-21
 

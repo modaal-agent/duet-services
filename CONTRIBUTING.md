@@ -42,6 +42,25 @@
   (`--check` validates each file's fingerprint block — a stale input, a
   source file added after generation, or a hand-edit turns it red, with no
   Sourcery run). Never hand-edit a generated file.
+- **`DuetTheming` declares no target dependencies.** Not a third-party one,
+  and not a `duet` product either: an app that wants a theme engine resolves
+  this package and nothing else to get one. A dependency added to that
+  target changes what the product claims, so it is a breaking change rather
+  than an implementation detail.
+- **An iOS-only module is `#if os(iOS)` whole-file, and its suite runs on a
+  simulator.** The `swift` CI job runs `swift test` on macOS, where a UIKit
+  import does not compile: put the copyright header first, then `#if
+  os(iOS)`, then the imports, so the host lane compiles the target to
+  nothing. `scripts/test-ios.sh` is where those files are type-checked — it
+  builds every target for a simulator destination — and where a suite that
+  needs a UIKit runtime runs. Add a new simulator-hosted suite to that
+  script's `-only-testing` list, and run the script before pushing; CI's
+  `ios` job runs the same file.
+- **Third-party source copied into this repository keeps its attribution.**
+  Fourteen of the sixteen files in `swift/Sources/DuetTheming` carry a
+  "Based on" line naming SwiftTheming, and `NOTICE` reproduces its MIT text
+  and states that count. Editing one of those files keeps its line; adding
+  or removing one updates the count in `NOTICE`.
 - **The two language halves move together.** A grammar or port change in
   `swift/Sources/DuetTelemetry` lands with its Kotlin twin in
   `kotlin/telemetry` and a regenerated `contracts/telemetry-twin/` in the

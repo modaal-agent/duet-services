@@ -3,16 +3,18 @@
 [![ci](https://github.com/modaal-agent/duet-services/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/modaal-agent/duet-services/actions/workflows/ci.yml)
 
 The services, telemetry and theming layer for [Duet](https://github.com/modaal-agent/duet)-family
-apps. Three Swift library products, each consumed independently, and two
-Kotlin Multiplatform artifacts. The Swift products and the `telemetry`
-artifact resolve `duet`; the `theming` artifact resolves `kotlinx-coroutines`
-and nothing else:
+apps. Four Swift library products, each consumed independently, and two
+Kotlin Multiplatform artifacts. Three of the Swift products and the
+`telemetry` artifact resolve `duet`; `DuetTheming` declares no dependencies at
+all, and the `theming` artifact resolves `kotlinx-coroutines` and nothing
+else:
 
 | product | carries |
 | --- | --- |
 | `DuetDiagnostics` | the structured-logging port (`DiagnosticsWorking`) and its `os.Logger`-backed worker, with crash-reporter hooks as the one backend seam |
 | `DuetAppServices` | both halves of the app-services boundary: the inbound URL/notification registry worker and the app-lifecycle publisher, and the outbound worker over the system-integration ports (URL opening, pasteboard, haptics, audio session, and the tracking and push-permission prompts) |
 | `DuetTelemetry` | the semantic-event grammar substrate — `TrackedEvent`/`TrackedVerb`/`TrackedParam` — the `AnalyticsTracking` port and its worker-shaped refinement `AnalyticsTrackingWorking`, and `AnalyticsTrackingWorker`, the SDK-free fan-out that pushes one enabled flag and one event stream to every vendor sink |
+| `DuetTheming` | the theme engine an app's catalog plugs into: `Theme`/`Themed`/`Assetable` for declaring which color, font, image and gradient each theme has, `Appearance<T>` for covering light and dark in one entry, `ThemeProvider` for resolving a key and persisting the user's choice, and `ThemeScope`/`ThemedHostingController` for publishing it to a SwiftUI tree. iOS only |
 
 Every product carries the `Duet` prefix. A SwiftPM product name is global to
 the resolved graph and a module name is global to the file that imports it,
@@ -31,6 +33,12 @@ analytics or crash backend by conforming to a port in one file of its own.
 `DuetTelemetry` is **third-party-free by contract**: a package that links
 only `DuetTelemetry` resolves this package and `duet` and nothing else.
 Consumers that audit their dependency closure gate on that.
+
+`DuetTheming` goes one step further and declares **no target dependencies at
+all**, not even a `duet` product: an app that wants a theme engine resolves
+this package and nothing else to get one. It imports UIKit and SwiftUI, so it
+is iOS-only — every file is `#if os(iOS)` whole-file, and the package's
+`ios` CI lane is where it compiles and its suite runs.
 
 `DuetTelemetry` has a Kotlin twin, `dev.modaal.duet.services:telemetry` — a
 Kotlin Multiplatform artifact (jvm, iosArm64, iosSimulatorArm64, macosArm64)
@@ -60,6 +68,13 @@ over the app's tokens, so adding, renaming or dropping a semantic token needs
 no artifact release. Its dependency rule is narrower than the telemetry
 artifact's — `kotlinx-coroutines`, for the `StateFlow` the appearance store
 publishes, and nothing else.
+
+`DuetTheming` and the `theming` artifact are the two languages' theme
+engines, and they are independent products: each resolves the app's own
+palette natively, in the idiom of its platform — asset keys over a `Themed`
+catalog on the Swift side, roles over a `DuetThemeSpec` on the Kotlin side.
+Unlike the telemetry halves, they exchange no wire form, so an app links
+whichever halves its platforms need and declares its palette values in each.
 
 The contracts an adopting app works with directly:
 
@@ -142,6 +157,76 @@ A view spells the optionality — `hapticFeedback?.impactLight()` — which fire
 in the app and does nothing in a preview, where there is no composition root
 and so no worker to reach.
 
+**A theme is a catalog the app declares, registered by two conformances.**
+Asset keys are the app's own enums; one `Themed` subclass per theme declares
+what each key resolves to; `Theme: Themeable` maps a theme to its catalog, and
+`ThemeDefaults: ThemeDefaulting` names the theme an unhosted tree — an Xcode
+preview, a test host — renders with:
+
+```swift
+enum ColorAsset: ColorAssetable { case background, accent }
+
+final class DefaultThemed: Themed, Assetable {
+  typealias _ColorAsset = ColorAsset
+  typealias _FontAsset = EmptyAsset
+  typealias _ImageAsset = EmptyAsset
+  typealias _GradientAsset = EmptyAsset
+
+  func colorSet(for asset: ColorAsset) -> ColorSet {
+    switch asset {
+    case .background: ColorSet(.auto(light: .white, dark: .black))
+    case .accent:     ColorSet(.static(.systemBlue))
+    }
+  }
+}
+
+extension Theme {
+  static let main = Theme(key: "main")
+}
+
+extension Theme: Themeable {
+  public func themed() -> Themed { DefaultThemed() }
+}
+
+extension ThemeDefaults: ThemeDefaulting {
+  public func defaultTheme() -> Theme { .main }
+}
+```
+
+Both conformances are resolved by cast, so an app that declares neither traps
+at its first lookup rather than failing to compile — write them beside each
+other, in one file of the app target. An asset family the app has no keys for
+is declared `EmptyAsset`, whose supplied implementation traps if a lookup ever
+reaches it. `Appearance<T>` covers light and dark in one entry: `.static`,
+`.auto(light:dark:)`, or `.dynamic` from the trait collection. For `UIColor`,
+`.auto` and `.dynamic` resolve to a dynamic `UIColor` while the preferred
+appearance is `.system`, so a color already handed to a view keeps following
+the system setting.
+
+**The provider is published once per SwiftUI tree, at the hosting root.** A
+SwiftUI environment value does not cross a UIKit boundary, so every hosting
+root takes the provider: subclass `ThemedHostingController` and hand it one,
+or wrap a single tree in `ThemeScope(provider) { ... }`. A view then reads
+`@Environment(\.theme)` and calls `theme.color(for: ColorAsset.accent)`; no
+view takes a theming parameter, however deeply nested, and no view model
+carries one on its behalf. Set hosted content through `themedRootView` —
+assigning `rootView` is a compile error by design.
+
+```swift
+let themeProvider = ThemeProvider(
+  persistentStorage: ThemePersistentStorage(),
+  defaultTheme: .main,
+  defaultPreferredAppearance: .system)
+```
+
+`ThemeProvider` is read and written from the main actor and is not
+observable: `setTheme(with:)` and `setPreferredAppearance(with:)` update state
+and write through `ThemeProviderPersisting` — `ThemePersistentStorage`, the
+supplied implementation, stores JSON in `UserDefaults.standard` — and views
+that read the provider re-render when the app invalidates them. Substitute an
+app group's defaults, or an in-memory double in tests, by conforming to the
+same port.
+
 ## Consuming
 
 Reference this package by a version-pinned URL. The module names are the
@@ -151,6 +236,7 @@ import names:
 import DuetAppServices
 import DuetDiagnostics
 import DuetTelemetry
+import DuetTheming
 ```
 
 The Kotlin artifact resolves from the family's Maven repository — one
@@ -179,7 +265,7 @@ The Swift half lives under `swift/`, with the manifest at the repository
 root — SwiftPM resolves a `.package(url:)` against the root only, and the
 root stays free for the other language halves.
 
-- `swift/Sources/{DuetDiagnostics,DuetAppServices,DuetTelemetry,DuetAppServicesTestSupport}`
+- `swift/Sources/{DuetDiagnostics,DuetAppServices,DuetTelemetry,DuetTheming,DuetAppServicesTestSupport}`
   — one directory per product, named for it.
 - `swift/Sources/DuetAppServices/{Inbound,Outbound}` — one directory per
   direction, each holding its worker and a `Protocols/` directory with one
@@ -190,6 +276,11 @@ root stays free for the other language halves.
   `scripts/generate-mocks.sh`, never hand-edited).
 - `swift/Tests/TelemetryTests` — the grammar substrate's encoding-rule pins,
   compiled against `DuetTelemetry` alone.
+- `swift/Tests/ThemingTests` — what the theming layer publishes: the provider
+  handed to a hosting root reaches every view in the tree it hosts. The tests
+  mount real SwiftUI trees under a `UIWindow`, so they need a simulator host —
+  `scripts/test-ios.sh` builds every target for the simulator and runs them,
+  and CI's `ios` job runs that same script.
 - `kotlin/` — the Kotlin half: the `:telemetry` and `:theming` KMP modules,
   the Gradle wrapper, and `kotlin/scripts/publish-maven.sh`, the staging/
   atomicity/immutability gate the tag-triggered publish workflow runs.
