@@ -16,42 +16,27 @@ import Foundation
 import UIKit
 import UserNotifications
 
-/// Composite of the outbound ports: everything the app asks OF the system —
-/// opening URLs, the pasteboard, haptics, the audio session, and the two
+/// The one outbound worker, adopted at the composition root
+/// (`host.adopt(outboundAppServices)`): everything the app asks OF the system
+/// — opening URLs, the pasteboard, haptics, the audio session, and the two
 /// permission prompts.
 ///
-/// The composition root owns ONE instance, adopts it
-/// (`host.adopt(outboundAppServicesWorker)`), and forwards it down the graph
-/// as narrow per-capability protocols — a node that opens URLs takes
+/// The composition root owns ONE instance and forwards it down the graph as
+/// narrow per-capability ports — a feature that opens a URL takes
 /// `URLOpening`, never the composite.
 ///
-/// It is a `Working` so its lifetime is the mount's, bracketed like the
-/// inbound registry worker beside it: one adoption call covers both halves of
-/// the app-services boundary, and state that later wants a lifetime (a cached
-/// authorization status, an audio-interruption subscription) has a `run()` to
+/// Every side effect is implemented HERE, in the worker, rather than in a
+/// helper the worker forwards to: a system call that carries a threading rule
+/// (`UIApplication.open(_:)` and the impact generators are main-thread API)
+/// has one home, and the isolation each call establishes is stated at the
+/// call itself.
+///
+/// It is nonisolated, and every member is a direct call into a system
+/// singleton, so there is no state for isolation to guard. The `Working`
+/// bracket gives its lifetime to the mount and gives future state (a cached
+/// authorization status, an audio-interruption subscription) a `run()` to
 /// live in without restructuring the composition root.
-///
-/// NOT CreateMock-annotated: this file is platform-conditional, and a
-/// generated mock is unconditional — the macOS host lane cannot compile it.
-/// Depend on the narrow ports, each of which has its own generated double.
-public protocol OutboundAppServicesWorking: Working, AppActionsProviding,
-                                            AppTrackingAuthorizationRequesting,
-                                            PushNotificationAuthorizationRequesting,
-                                            AudioSessionConfiguring {
-}
-
-/// Default implementation backed by the system singletons. Production wires
-/// this; tests wire narrow per-protocol doubles.
-///
-/// The URL, pasteboard, haptic and audio-session members forward to
-/// `SystemAppActions` and `SystemAudioSession`, so each side effect —
-/// including the main-thread discipline `UIApplication.open(_:)` and the
-/// impact generators require — has one implementation in this package rather
-/// than a second copy here.
 public final class OutboundAppServicesWorker: OutboundAppServicesWorking {
-
-  private let appActions = SystemAppActions()
-  private let audioSession = SystemAudioSession()
 
   public init() {}
 
@@ -66,59 +51,84 @@ public final class OutboundAppServicesWorker: OutboundAppServicesWorking {
   // MARK: - URLOpening
 
   public func open(_ url: URL) {
-    appActions.open(url)
+    // `UIApplication.shared.open(_:)` requires the main thread — and is
+    // `@MainActor`, which this nonisolated method is not, so each branch
+    // states the isolation it has just established.
+    if Thread.isMainThread {
+      MainActor.assumeIsolated { UIApplication.shared.open(url) }
+    } else {
+      DispatchQueue.main.async {
+        MainActor.assumeIsolated { UIApplication.shared.open(url) }
+      }
+    }
   }
 
   // MARK: - HapticFeedbackProviding
 
+  // `UIImpactFeedbackGenerator` is main-thread API and `@MainActor` in the
+  // SDK; call sites are view-side taps, already on the main thread — the
+  // `assumeIsolated` bracket turns that from a comment into a runtime
+  // precondition.
+
   public func impactLight() {
-    appActions.impactLight()
+    MainActor.assumeIsolated { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
   }
 
   public func impactMedium() {
-    appActions.impactMedium()
+    MainActor.assumeIsolated { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
   }
 
   public func impactHeavy() {
-    appActions.impactHeavy()
+    MainActor.assumeIsolated { UIImpactFeedbackGenerator(style: .heavy).impactOccurred() }
   }
 
   public func impactSoft() {
-    appActions.impactSoft()
+    MainActor.assumeIsolated { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
   }
 
   // MARK: - PasteboardWriting / PasteboardReading
 
   public func write(string: String) {
-    appActions.write(string: string)
+    // `UIPasteboard.general.string` is safe from any thread.
+    UIPasteboard.general.string = string
   }
 
   public func readString() -> String? {
-    appActions.readString()
+    UIPasteboard.general.string
   }
 
   // MARK: - AudioSessionConfiguring
 
+  // `AVAudioSession.sharedInstance()` calls are thread-safe; failures (another
+  // app holding the session, a route change mid-call) are dropped via `try?`
+  // per the port's best-effort contract, except on `activateRecording()`,
+  // whose caller branches on the throw.
+
   public func activatePlayback() {
-    audioSession.activatePlayback()
+    let session = AVAudioSession.sharedInstance()
+    try? session.setCategory(.playback, mode: .default)
+    try? session.setActive(true)
   }
 
   public func activateRecording() throws {
-    try audioSession.activateRecording()
+    let session = AVAudioSession.sharedInstance()
+    try session.setCategory(.playAndRecord, mode: .default)
+    try session.setActive(true)
   }
 
   public func deactivate() {
-    audioSession.deactivate()
+    try? AVAudioSession.sharedInstance().setActive(
+      false, options: .notifyOthersOnDeactivation)
   }
 
   @available(iOS 17, *)
   public var recordPermission: AVAudioApplication.recordPermission {
-    audioSession.recordPermission
+    AVAudioApplication.shared.recordPermission
   }
 
   @available(iOS 17, *)
   public func requestRecordPermission(_ handler: @escaping @Sendable (Bool) -> Void) {
-    audioSession.requestRecordPermission(handler)
+    AVAudioApplication.requestRecordPermission(completionHandler: handler)
   }
 
   // MARK: - AppTrackingAuthorizationRequesting
@@ -154,7 +164,6 @@ public final class OutboundAppServicesWorker: OutboundAppServicesWorking {
         break
       }
     }
-
   }
 
   /// `registerForRemoteNotifications()` is main-thread API and `@MainActor`

@@ -2,8 +2,20 @@
 
 ## Unreleased
 
-Additive. No existing declaration changes, so a consumer takes this version
-with no edit; the entries below are surface a consumer opts into.
+Minor. `DuetAppServices` renames one worker and its composite protocol and
+removes three types; a consumer edits the two lines its composition root
+names and takes the rest with no edit. `DuetDiagnostics` and `DuetTelemetry`
+are untouched.
+
+| was | is |
+| --- | --- |
+| `AppServicesWorker()` | `InboundAppServicesWorker()` |
+| `AppServicesWorking` | `InboundAppServicesWorking` |
+| `NotificationCenterAppLifecycle(center:)` | `InboundAppServicesWorker()` |
+| `AppActionsProviding` | compose the narrow ports (`URLOpening`, `PasteboardReading`, `PasteboardWriting`, `HapticFeedbackProviding`) |
+| `SystemAppActions()`, `SystemAudioSession()` | `OutboundAppServicesWorker()` |
+| `DefaultHapticFeedback()` | `OutboundAppServicesWorker()`, assigned to `\.hapticFeedback` by the composition root |
+| `@Environment(\.hapticFeedback) … hapticFeedback.impactLight()` | `hapticFeedback?.impactLight()` |
 
 ### Added — `AppLifecycleObserving`, the app's own transitions as a publisher
 
@@ -15,12 +27,15 @@ differently: every subscriber gets every event, so there is no priority and
 nothing to claim. The port is annotated `sourcery: CreateMock`, so a
 consumer's generation lane emits the double.
 
-`NotificationCenterAppLifecycle` is the default. It takes the notification
-centre to observe and a `[Notification.Name: AppLifecycleEvent]` map, and
-`init(center:)` fills in UIKit's four names. The map being a parameter is
-what puts the mapping on every lane this package builds on — its logical
-tests run on the host lane over a private `NotificationCenter()` — and lets a
-host whose lifecycle notifications carry other names use the same type.
+`InboundAppServicesWorker` implements it. `init` takes the notification
+centre to observe and a `[Notification.Name: AppLifecycleEvent]` map, both
+defaulted — `.default` and UIKit's four names, so an app constructs the
+worker with no arguments. The map being a parameter is what puts the mapping
+on every lane this package builds on — its logical tests run on the host lane
+over a private `NotificationCenter()` — and lets a host whose lifecycle
+notifications carry other names use the same worker. `appLifecycle` is
+`nonisolated` on the otherwise main-actor-isolated worker and builds its
+merge per subscription, so an off-main subscriber reads it without a hop.
 
 ### Added — the two permission prompts, as platform-neutral ports
 
@@ -30,7 +45,7 @@ name no framework type in their signatures, so a feature that asks for a
 permission compiles and runs its logical tests on the host lane, over the
 generated doubles, and the system alert stays behind the seam. The push port
 covers the registration that produces the APNS device token
-`AppServicesWorker` dispatches.
+`InboundAppServicesWorker` dispatches.
 
 ### Added — `AnalyticsTracking` carries `sourcery: CreateMock`
 
@@ -42,18 +57,44 @@ port deletes it and takes the generated double on its next regeneration.
 
 ### Added — `OutboundAppServicesWorker`, the outbound half of the boundary
 
-`OutboundAppServicesWorking` composes `AppActionsProviding` (URL opening,
-pasteboard, haptics), `AudioSessionConfiguring` and the two prompts;
-`OutboundAppServicesWorker` implements it over the system singletons and is
-a `Working`, so the composition root adopts it with the same bracket as the
-inbound registry worker and forwards it down the graph as narrow
-per-capability ports. iOS-bound, and hand-written doubles are unnecessary:
-each narrow port it carries has its own generated mock.
+`OutboundAppServicesWorking` composes `URLOpening`, `PasteboardReading`,
+`PasteboardWriting`, `HapticFeedbackProviding`, `AudioSessionConfiguring` and
+the two prompts; `OutboundAppServicesWorker` implements all of them over the
+system singletons and is a `Working`, so the composition root adopts it with
+the same bracket as the inbound worker and forwards it down the graph as
+narrow per-capability ports. iOS-bound, and hand-written doubles are
+unnecessary: each narrow port it carries has its own generated mock.
 
-Its URL, pasteboard, haptic and audio members forward to `SystemAppActions`
-and `SystemAudioSession`, which gain `Sendable` conformances — both hold no
-state, so the worker stores one of each rather than repeating the
-main-thread discipline those calls require.
+### Changed — every implementation in `DuetAppServices` lives in a worker
+
+The module ships two concrete types, `InboundAppServicesWorker` and
+`OutboundAppServicesWorker`, and each holds every implementation of the ports
+its composite carries. A system call that carries a threading rule
+(`UIApplication.open(_:)` and the impact generators are main-thread API) has
+one home, and the isolation each call establishes is stated at the call.
+
+- `AppServicesWorker` is `InboundAppServicesWorker`, and `AppServicesWorking`
+  is `InboundAppServicesWorking`. The composite now also carries
+  `AppLifecycleObserving` and `AppServiceHandling` — the composed URL and
+  notification dispatch surface an app's scene and app delegates store.
+- `NotificationCenterAppLifecycle` is removed; `InboundAppServicesWorker`
+  publishes `appLifecycle`.
+- `SystemAppActions` and `SystemAudioSession` are removed;
+  `OutboundAppServicesWorker` implements their members directly.
+- `AppActionsProviding` is removed. `OutboundAppServicesWorking` composes the
+  four narrow ports it stood for, and an app that wants its own composite
+  composes the narrow ports too.
+- `DefaultHapticFeedback` is removed, and `\.hapticFeedback` is
+  `HapticFeedbackProviding?` with a `nil` default. The composition root
+  constructs `OutboundAppServicesWorker`, adopts it, and assigns it on the
+  root view (`.environment(\.hapticFeedback, outboundAppServices)`); a call
+  site spells the optionality, `hapticFeedback?.impactLight()`. An app that
+  took the old default fired haptics from a value nothing owned and nothing
+  tore down — assign the adopted worker and the generator calls run on the
+  instance whose lifetime is the mount's.
+
+Sources are laid out by direction: `Inbound/` and `Outbound/` each hold their
+worker, and a `Protocols/` directory beside it with one port per file.
 
 ### Changed — the framework pin moves to `duet` 0.4.0
 

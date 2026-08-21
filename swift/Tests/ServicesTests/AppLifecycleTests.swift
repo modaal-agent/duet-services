@@ -6,12 +6,15 @@ import DuetAppServices
 import Foundation
 import XCTest
 
-/// The lifecycle port's logical receipts: each notification name carries the
-/// event it is mapped to, every subscriber gets every event, and a name
-/// outside the map is not observed.
+/// The lifecycle half of `InboundAppServicesWorker`, as logical receipts:
+/// each notification name carries the event it is mapped to, every subscriber
+/// gets every event, and a name outside the map is not observed.
 ///
 /// Each test posts into a PRIVATE `NotificationCenter`, so nothing here
-/// reaches — or is reached by — another test in the process.
+/// reaches — or is reached by — another test in the process. The worker is
+/// constructed but not adopted: `appLifecycle` is `nonisolated` and builds a
+/// publisher per subscription, so it delivers without a running `run()`.
+@MainActor
 final class AppLifecycleTests: XCTestCase {
 
   private static let didBecomeActive = Notification.Name("test.didBecomeActive")
@@ -28,7 +31,8 @@ final class AppLifecycleTests: XCTestCase {
 
   func testEachNameCarriesItsEventInPostOrder() {
     let center = NotificationCenter()
-    let observer = NotificationCenterAppLifecycle(center: center, events: Self.events)
+    let observer = InboundAppServicesWorker(
+      notificationCenter: center, lifecycleEvents: Self.events)
 
     var received: [AppLifecycleEvent] = []
     let token = observer.appLifecycle.sink { received.append($0) }
@@ -47,7 +51,8 @@ final class AppLifecycleTests: XCTestCase {
   /// subscriber does not take the event away from the first.
   func testEverySubscriberGetsEveryEvent() {
     let center = NotificationCenter()
-    let observer = NotificationCenterAppLifecycle(center: center, events: Self.events)
+    let observer = InboundAppServicesWorker(
+      notificationCenter: center, lifecycleEvents: Self.events)
 
     var first: [AppLifecycleEvent] = []
     var second: [AppLifecycleEvent] = []
@@ -69,7 +74,8 @@ final class AppLifecycleTests: XCTestCase {
   /// pauses again on the second interruption.
   func testRepeatedTransitionsEmitEachTime() {
     let center = NotificationCenter()
-    let observer = NotificationCenterAppLifecycle(center: center, events: Self.events)
+    let observer = InboundAppServicesWorker(
+      notificationCenter: center, lifecycleEvents: Self.events)
 
     var received: [AppLifecycleEvent] = []
     let token = observer.appLifecycle.sink { received.append($0) }
@@ -83,8 +89,8 @@ final class AppLifecycleTests: XCTestCase {
 
   func testNamesOutsideTheMapAreNotObserved() {
     let center = NotificationCenter()
-    let observer = NotificationCenterAppLifecycle(
-      center: center, events: [Self.didBecomeActive: .didBecomeActive])
+    let observer = InboundAppServicesWorker(
+      notificationCenter: center, lifecycleEvents: [Self.didBecomeActive: .didBecomeActive])
 
     var received: [AppLifecycleEvent] = []
     let token = observer.appLifecycle.sink { received.append($0) }
@@ -100,7 +106,8 @@ final class AppLifecycleTests: XCTestCase {
   /// registration of its own beyond what a subscriber asks for.
   func testCancellingTheSubscriptionEndsDelivery() {
     let center = NotificationCenter()
-    let observer = NotificationCenterAppLifecycle(center: center, events: Self.events)
+    let observer = InboundAppServicesWorker(
+      notificationCenter: center, lifecycleEvents: Self.events)
 
     var received: [AppLifecycleEvent] = []
     let token = observer.appLifecycle.sink { received.append($0) }

@@ -14,11 +14,11 @@ import XCTest
 /// Every dispatch test calls `handlersDidRegister()` first, because that is
 /// what an app does: the ingress worker registers its handlers and then
 /// signals the burst complete. Before the signal, inbound events buffer.
-final class AppServicesWorkerTests: XCTestCase {
+final class InboundAppServicesWorkerTests: XCTestCase {
 
   @MainActor
   func testDispatchPrefersHigherPriorityFirstMatch() async {
-    let worker = AppServicesWorker()
+    let worker = InboundAppServicesWorker()
     let tester = WorkerTester(worker)
     tester.start()
 
@@ -43,7 +43,7 @@ final class AppServicesWorkerTests: XCTestCase {
 
   @MainActor
   func testUnclaimedURLsFallThroughToTheNextHandler() async {
-    let worker = AppServicesWorker()
+    let worker = InboundAppServicesWorker()
     let tester = WorkerTester(worker)
     tester.start()
 
@@ -69,7 +69,7 @@ final class AppServicesWorkerTests: XCTestCase {
 
   @MainActor
   func testCancellingTheTokenUnregisters() async {
-    let worker = AppServicesWorker()
+    let worker = InboundAppServicesWorker()
     let tester = WorkerTester(worker)
     tester.start()
 
@@ -90,7 +90,7 @@ final class AppServicesWorkerTests: XCTestCase {
   /// per-registration drain would have handed it to the catch-all.
   @MainActor
   func testEventsBeforeTheSettleSignalDrainAgainstTheFullRegistry() async {
-    let worker = AppServicesWorker()
+    let worker = InboundAppServicesWorker()
     let tester = WorkerTester(worker)
     tester.start()
 
@@ -120,7 +120,7 @@ final class AppServicesWorkerTests: XCTestCase {
   /// call delivers nothing a second time.
   @MainActor
   func testTheDrainKeepsArrivalOrderAndHappensOnce() async {
-    let worker = AppServicesWorker()
+    let worker = InboundAppServicesWorker()
     let tester = WorkerTester(worker)
     tester.start()
 
@@ -146,7 +146,7 @@ final class AppServicesWorkerTests: XCTestCase {
   /// worker drops the overflow rather than growing without bound.
   @MainActor
   func testTheLaunchBufferIsCapped() async {
-    let worker = AppServicesWorker()
+    let worker = InboundAppServicesWorker()
     let tester = WorkerTester(worker)
     tester.start()
 

@@ -14,9 +14,10 @@ import PackageDescription
 // Three products, each consumed independently:
 //
 //   DuetDiagnostics   the structured-logging port and its worker
-//   DuetAppServices   the inbound-URL/notification registry worker and the
-//                     system-integration ports (audio session, haptics,
-//                     pasteboard, system actions)
+//   DuetAppServices   the two app-services workers — inbound (URL and
+//                     notification registry, lifecycle transitions) and
+//                     outbound (URL opening, pasteboard, haptics, audio
+//                     session, permission prompts) — and their ports
 //   DuetTelemetry     the semantic-event grammar substrate — the event product
 //                     type, the tracking port, the SDK-free fan-out and no-op
 //                     sinks — plus the consent store that gates egress from

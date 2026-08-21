@@ -6,135 +6,37 @@ import DuetShells
 import Foundation
 import os.log
 
-// The inbound registry worker: features register URL (and, on iOS, push)
-// handlers and get lifetime-bound cancellables back; the app delegates
-// forward incoming events here and the first matching handler in priority
-// order takes them. The URL half is platform-neutral (present on the macOS
-// host lane, where its logical tests run); the push half is UIKit-guarded.
+// The inbound worker: everything the system hands TO the app. Features
+// register URL (and, on iOS, push) handlers and get lifetime-bound
+// cancellables back; the app delegates forward incoming events here and the
+// first matching handler in priority order takes them; lifecycle transitions
+// arrive as a publisher, because every subscriber wants every event and there
+// is nothing to arbitrate. The URL and lifecycle halves are platform-neutral
+// (present on the macOS host lane, where their logical tests run); the push
+// half is UIKit-guarded.
 
 private let logger = Logger(
   subsystem: Bundle.main.bundleIdentifier ?? "duet.appservices", category: "AppServices")
 
-/// sourcery: CreateMock
-@MainActor
-public protocol AppServicesURLHandlerRegistering {
-  func registerURLHandler(
-    _ handler: URLHandling, priority: AppServicePriority
-  ) -> AnyCancellable
-}
-
-/// The launch window's end. Registration is asynchronous — handlers register
-/// from the ingress worker's `run()`, which `StoreHost.adopt` starts on its
-/// own task — while the scene's cold-launch drain is synchronous. Until the
-/// registrar says the burst is complete, `AppServicesWorker` BUFFERS inbound
-/// events instead of dispatching them into a registry that is still filling,
-/// so a launch-tapped universal link is handled rather than dropped.
-///
-/// sourcery: CreateMock
-@MainActor
-public protocol AppServicesRegistrationSettling {
-  /// Signals that the registration burst is COMPLETE: buffered events drain
-  /// now, in arrival order, against the full priority-ordered registry.
-  ///
-  /// Draining per-REGISTRATION instead of per-BURST would be wrong — a
-  /// lower-priority catch-all registered first would take a URL a
-  /// higher-priority handler later in the same burst is meant to claim.
-  ///
-  /// Idempotent, and one-way: the worker is built once per scene, so a shell
-  /// remount cannot re-open the buffer mid-session.
-  ///
-  /// **Invariant**: ONE registrar calls this — the app's ingress worker, the
-  /// same code that registers the handlers. A second registrar means the
-  /// signal moves to wherever "all handlers are up" becomes true.
-  func handlersDidRegister()
-}
-
-/// sourcery: CreateMock
-@MainActor
-public protocol AppServiceURLHandling: AnyObject {
-  /// Dispatch inbound URLs (cold-launch context lists and warm opens alike)
-  /// to the first registered handler that claims each one.
-  func openURLs(_ urls: [URL])
-}
-
-public extension AppServiceURLHandling {
-  func openURL(_ url: URL) {
-    openURLs([url])
-  }
-}
-
-#if canImport(UIKit)
-import UIKit
-
-// NOT CreateMock-annotated: declared in a platform-conditional block, and a
-// generated mock is unconditional — the macOS host lane cannot compile the
-// UIKit branch's mock. Hand-write a double where a test needs one.
-@MainActor
-public protocol AppServicesAPNSHandlerRegistering {
-  func registerAPNSNotificationsHandler(
-    _ handler: NotificationHandling, priority: AppServicePriority
-  ) -> AnyCancellable
-}
-
-// NOT CreateMock-annotated: declared in a platform-conditional block, and a
-// generated mock is unconditional — the macOS host lane cannot compile the
-// UIKit branch's mock. Hand-write a double where a test needs one.
-@MainActor
-public protocol AppServicesRegistering: AppServicesURLHandlerRegistering,
-                                        AppServicesAPNSHandlerRegistering,
-                                        AppServicesRegistrationSettling {
-}
-
-// NOT CreateMock-annotated: declared in a platform-conditional block, and a
-// generated mock is unconditional — the macOS host lane cannot compile the
-// UIKit branch's mock. Hand-write a double where a test needs one.
-@MainActor
-public protocol AppServiceNotificationHandling: AnyObject {
-  func appDidRegisterForRemoteNotifications(deviceToken: Data)
-  func appDidReceiveRemoteNotification(
-    notification: [AnyHashable: Any],
-    fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void)
-}
-
-// NOT CreateMock-annotated: declared in a platform-conditional block, and a
-// generated mock is unconditional — the macOS host lane cannot compile the
-// UIKit branch's mock. Hand-write a double where a test needs one.
-@MainActor
-public protocol AppServicesWorking: Working, AppServicesRegistering,
-                                    AppServiceURLHandling, AppServiceNotificationHandling {
-}
-#else
-// NOT CreateMock-annotated: declared in a platform-conditional block, and a
-// generated mock is unconditional — the macOS host lane cannot compile the
-// UIKit branch's mock. Hand-write a double where a test needs one.
-@MainActor
-public protocol AppServicesRegistering: AppServicesURLHandlerRegistering,
-                                        AppServicesRegistrationSettling {
-}
-
-// NOT CreateMock-annotated: declared in a platform-conditional block, and a
-// generated mock is unconditional — the macOS host lane cannot compile the
-// UIKit branch's mock. Hand-write a double where a test needs one.
-@MainActor
-public protocol AppServicesWorking: Working, AppServicesRegistering, AppServiceURLHandling {
-}
-#endif
-
-/// The one registry worker, adopted at the composition root
-/// (`host.adopt(appServicesWorker)`). Registrations survive for the mount's
+/// The one inbound worker, adopted at the composition root
+/// (`host.adopt(inboundAppServices)`). Registrations survive for the mount's
 /// duration or until their cancellable is torn down, whichever ends first.
 ///
-/// Main-actor isolated via `AppServicesWorking` — the annotation sits on the
-/// PROTOCOL, so the isolation reaches every consumer of the seam (the worker
-/// rule in the duet framework's docs/workers.md). The registries need no
-/// lock: registration, dispatch, and the returned cancellables' closures all
-/// run on the main actor — each closure is non-Sendable and formed in an
+/// Main-actor isolated via `InboundAppServicesWorking` — the annotation sits
+/// on the PROTOCOL, so the isolation reaches every consumer of the seam (the
+/// worker rule in the duet framework's docs/workers.md). The registries need
+/// no lock: registration, dispatch, and the returned cancellables' closures
+/// all run on the main actor — each closure is non-Sendable and formed in an
 /// isolated method, so it inherits the isolation. One contract the compiler
 /// does not check: an `AnyCancellable` runs its closure from `deinit` on
 /// whatever thread drops the last reference, so registration tokens must be
 /// owned by main-actor code (the composition root's are).
+///
+/// The lifecycle members are `nonisolated`: they read two immutable
+/// `Sendable` properties and build a publisher per subscription, so a
+/// subscriber off the main actor reads them without a hop.
 @MainActor
-public final class AppServicesWorker: AppServicesWorking {
+public final class InboundAppServicesWorker: InboundAppServicesWorking {
 
   private var urlHandlers: [(URLHandling, AppServicePriority)] = []
 
@@ -148,12 +50,38 @@ public final class AppServicesWorker: AppServicesWorking {
   /// runs. Overflow is dropped with a log line rather than growing unbounded.
   private static let launchBufferLimit = 8
 
-  public init() {}
+  /// Where lifecycle notifications come from. Injected rather than reached
+  /// for, so a test posts into a `NotificationCenter()` of its own instead of
+  /// into the one every other test in the process is listening to.
+  nonisolated private let notificationCenter: NotificationCenter
+
+  /// The notification name that means each lifecycle event. A parameter
+  /// rather than a built-in list, which is what lets the mapping compile and
+  /// run its logical tests on every lane this package builds on, and lets a
+  /// host whose lifecycle notifications carry other names use the same
+  /// worker. A name absent from the map is never subscribed to, and an event
+  /// absent from the map is never emitted.
+  nonisolated private let lifecycleEvents: [Notification.Name: AppLifecycleEvent]
+
+  /// - Parameters:
+  ///   - notificationCenter: the centre to observe for lifecycle transitions
+  ///     — `.default` in an app, which is where UIKit posts; a private
+  ///     `NotificationCenter()` in a test, so posts stay inside that test.
+  ///   - lifecycleEvents: the notification name that means each event.
+  ///     Defaults to `platformLifecycleEvents`, UIKit's four names.
+  public init(
+    notificationCenter: NotificationCenter = .default,
+    lifecycleEvents: [Notification.Name: AppLifecycleEvent] = InboundAppServicesWorker.platformLifecycleEvents
+  ) {
+    self.notificationCenter = notificationCenter
+    self.lifecycleEvents = lifecycleEvents
+  }
 
   // MARK: - Working
 
   /// No owned subscriptions — the bracket parks until host teardown; the
-  /// registries stay live for the mount's duration.
+  /// registries stay live for the mount's duration, and each lifecycle
+  /// subscriber owns its own subscription.
   public func run() async {
     await untilCancelled()
   }
@@ -263,6 +191,18 @@ public final class AppServicesWorker: AppServicesWorking {
     }
   }
 
+  // MARK: - AppLifecycleObserving
+
+  /// Built per subscription rather than stored: a stored `AnyPublisher` is
+  /// not `Sendable`, and the merge holds nothing worth sharing — the current
+  /// implementation already gives every subscriber its own subscription.
+  nonisolated public var appLifecycle: AnyPublisher<AppLifecycleEvent, Never> {
+    let streams = lifecycleEvents.map { name, event in
+      notificationCenter.publisher(for: name).map { _ in event }.eraseToAnyPublisher()
+    }
+    return Publishers.MergeMany(streams).eraseToAnyPublisher()
+  }
+
   #if canImport(UIKit)
 
   private var notificationHandlers: [(NotificationHandling, AppServicePriority)] = []
@@ -319,3 +259,34 @@ public final class AppServicesWorker: AppServicesWorking {
 
   #endif
 }
+
+#if canImport(UIKit)
+
+import UIKit
+
+extension InboundAppServicesWorker {
+  /// UIKit's four lifecycle notification names, mapped to the events they
+  /// mean — the default an app gets by constructing the worker with no
+  /// arguments.
+  nonisolated public static var platformLifecycleEvents: [Notification.Name: AppLifecycleEvent] {
+    [
+      UIApplication.didBecomeActiveNotification: .didBecomeActive,
+      UIApplication.willResignActiveNotification: .willResignActive,
+      UIApplication.didEnterBackgroundNotification: .didEnterBackground,
+      UIApplication.willEnterForegroundNotification: .willEnterForeground,
+    ]
+  }
+}
+
+#else
+
+extension InboundAppServicesWorker {
+  /// Empty on a lane with no UIKit: there are no platform lifecycle
+  /// notifications to observe, and a test that wants the mapping passes its
+  /// own.
+  nonisolated public static var platformLifecycleEvents: [Notification.Name: AppLifecycleEvent] {
+    [:]
+  }
+}
+
+#endif

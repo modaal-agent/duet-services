@@ -15,7 +15,7 @@ import Foundation
 ///
 /// sourcery: CreateMock
 public protocol URLOpening: AnyObject {
-  /// Asks the system to open `url`. The default (`SystemAppActions`) calls
+  /// Asks the system to open `url`. The default (`OutboundAppServicesWorker`) calls
   /// `UIApplication.shared.open(url)`.
   func open(_ url: URL)
 }

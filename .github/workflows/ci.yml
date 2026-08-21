@@ -47,7 +47,7 @@ jobs:
 
   # The iOS compile gate: the swift job's `swift test` runs on macOS, so
   # every `#if os(iOS)` file — the audio-session port, FakeAudioSession, the
-  # APNS half of AppServicesWorker — is invisible to it. Build-only for a
+  # APNS half of InboundAppServicesWorker — is invisible to it. Build-only for a
   # simulator destination; the logical tests run on the host lanes above.
   ios-build:
     runs-on: macos-26

@@ -9,11 +9,3 @@ import Foundation
 public protocol PasteboardWriting: AnyObject {
   func write(string: String)
 }
-
-/// Inward pasteboard read, split from writing so consumers declare exactly
-/// the capability they use (reading prompts the paste banner on iOS).
-///
-/// sourcery: CreateMock
-public protocol PasteboardReading: AnyObject {
-  func readString() -> String?
-}

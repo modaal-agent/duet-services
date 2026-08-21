@@ -13,12 +13,13 @@ import Foundation
 /// `AVAudioSession.sharedInstance()` calls scattered through view shells.
 /// First-class on purpose — the receipt from apps that grew AV surfaces is
 /// that this seam matters exactly then, and retrofitting it is the expensive
-/// path. Until the app has an AV surface, nothing consumes it; the default
-/// below is inert until called.
+/// path. Until the app has an AV surface, nothing consumes it;
+/// `OutboundAppServicesWorker`'s implementation is inert until called.
 ///
 /// NOT CreateMock-annotated: this file is platform-conditional, and a
 /// generated mock is unconditional — the macOS host lane cannot compile it.
-/// Hand-write a double where a test needs one.
+/// `DuetAppServicesTestSupport` ships `FakeAudioSession` for tests that need
+/// a double.
 public protocol AudioSessionConfiguring: AnyObject {
   /// Configure the shared session for audible playback and activate it.
   /// Idempotent — safe to call repeatedly.
@@ -48,43 +49,6 @@ public protocol AudioSessionConfiguring: AnyObject {
   /// thread per the system signature; dispatch before touching UI.
   @available(iOS 17, *)
   func requestRecordPermission(_ handler: @escaping @Sendable (Bool) -> Void)
-}
-
-/// System-singleton-backed default.
-///
-/// `Sendable` because it holds no state — every member reaches
-/// `AVAudioSession.sharedInstance()` or `AVAudioApplication` directly — so a
-/// `Working` conformer can hold one as a stored property and forward this
-/// port to it.
-public final class SystemAudioSession: AudioSessionConfiguring, Sendable {
-  public init() {}
-
-  public func activatePlayback() {
-    let session = AVAudioSession.sharedInstance()
-    try? session.setCategory(.playback, mode: .default)
-    try? session.setActive(true)
-  }
-
-  public func activateRecording() throws {
-    let session = AVAudioSession.sharedInstance()
-    try session.setCategory(.playAndRecord, mode: .default)
-    try session.setActive(true)
-  }
-
-  public func deactivate() {
-    try? AVAudioSession.sharedInstance().setActive(
-      false, options: .notifyOthersOnDeactivation)
-  }
-
-  @available(iOS 17, *)
-  public var recordPermission: AVAudioApplication.recordPermission {
-    AVAudioApplication.shared.recordPermission
-  }
-
-  @available(iOS 17, *)
-  public func requestRecordPermission(_ handler: @escaping @Sendable (Bool) -> Void) {
-    AVAudioApplication.requestRecordPermission(completionHandler: handler)
-  }
 }
 
 #endif

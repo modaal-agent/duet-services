@@ -4,7 +4,7 @@
 import Foundation
 
 /// Dispatch priority for inbound handler registrations on
-/// `AppServicesWorker`. Higher rawValue wins — the worker sorts handlers
+/// `InboundAppServicesWorker`. Higher rawValue wins — the worker sorts handlers
 /// descending by `rawValue` and calls the first one whose `canHandle*`
 /// returns `true`.
 public enum AppServicePriority: Int, Sendable {

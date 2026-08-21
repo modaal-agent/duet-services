@@ -4,7 +4,7 @@
 import Foundation
 
 /// The inbound URL contract: one handler per URL family (deep links, invite
-/// links, sign-in callbacks, …), registered on `AppServicesWorker` with a
+/// links, sign-in callbacks, …), registered on `InboundAppServicesWorker` with a
 /// priority. Handlers claim a URL via `canHandleOpenUrl` and get exactly the
 /// ones they claimed.
 ///
