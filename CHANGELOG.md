@@ -55,6 +55,14 @@ and `SystemAudioSession`, which gain `Sendable` conformances — both hold no
 state, so the worker stores one of each rather than repeating the
 main-thread discipline those calls require.
 
+### Changed — the framework pin moves to `duet` 0.4.0
+
+`Relay.bindSink(owner:)` is the surface the bump adds; `duet` 0.4.0 changes
+no existing declaration, so the package compiles and its 26 tests pass with
+no source edit. The generated mocks re-pin because the fingerprint records a
+SHA-256 per scanned input and `Relay.swift` moved — `ServicesMocks.swift`
+carries the new hash and no other line.
+
 ## [0.4.0] — 2026-08-20
 
 Minor. Every consumer edits its import lines and its manifest product
