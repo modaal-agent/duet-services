@@ -2,9 +2,9 @@
 // Licensed under the MIT License. See LICENSE file for details.
 
 // Root of the KMP half. Plugin versions are hoisted here (`apply false`) so
-// any module added beside :telemetry shares one plugin classpath — two
-// sibling KMP modules collide on the shared KotlinNativeBundleBuildService,
-// and hoisting is the fix.
+// every module — :telemetry, :theming, and any module added beside them —
+// shares one plugin classpath: two sibling KMP modules collide on the shared
+// KotlinNativeBundleBuildService, and hoisting is the fix.
 plugins {
   alias(libs.plugins.kotlin.multiplatform) apply false
   alias(libs.plugins.kotlin.serialization) apply false
@@ -22,7 +22,7 @@ allprojects {
   // (the adopter repos gate mavenLocal behind a `duetMavenLocal=1` property).
   // It tracks the current release line — a cut moves it in the commit that
   // gets tagged, but nothing published depends on it.
-  version = providers.gradleProperty("publishVersion").getOrElse("0.6.0-SNAPSHOT")
+  version = providers.gradleProperty("publishVersion").getOrElse("0.7.0-SNAPSHOT")
 }
 
 subprojects {

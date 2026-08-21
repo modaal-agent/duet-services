@@ -46,11 +46,13 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   kotlin:
-    # macOS: the KMP module declares apple targets (macosArm64/ios*) — a Linux
-    # host would silently disable them. Pure KMP, no Android SDK needed. The
-    # jvmTest suite includes the twin-contract fixture check: the committed
-    # fixtures under contracts/telemetry-twin must carry exactly the Kotlin
-    # encoders' output (the swift job's TelemetryTests read the same files).
+    # macOS: both KMP modules declare apple targets (macosArm64/ios*) — a
+    # Linux host would silently disable them. Pure KMP, no Android SDK needed:
+    # nothing here compiles Compose or Android code, and Android consumers
+    # resolve the -jvm variants. The jvmTest suites include the twin-contract
+    # fixture check: the committed fixtures under contracts/telemetry-twin must
+    # carry exactly the Kotlin encoders' output (the swift job's TelemetryTests
+    # read the same files).
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
@@ -69,7 +71,7 @@ jobs:
             echo "### kotlin — ${{ steps.tests.outcome == 'success' && '✅ passed' || '❌ failed' }}"
             echo ""
             echo "- jdk: $(java -version 2>&1 | head -1)"
-            echo "- suites: \`:telemetry\` KMP build + jvmTest (grammar pins, fan-out receipts, twin-contract fixtures)"
+            echo "- suites: \`:telemetry\` (grammar pins, fan-out receipts, twin-contract fixtures) and \`:theming\` (role vocabulary, token and appearance resolution) — KMP build + jvmTest"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The iOS compile gate: the swift job's `swift test` runs on macOS, so

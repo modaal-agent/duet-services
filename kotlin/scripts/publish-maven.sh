@@ -54,6 +54,11 @@ COORDINATES=(
   telemetry-iosarm64
   telemetry-iossimulatorarm64
   telemetry-macosarm64
+  theming
+  theming-jvm
+  theming-iosarm64
+  theming-iossimulatorarm64
+  theming-macosarm64
 )
 
 # PUBLISH_MAVEN_SKIP_STAGE=1 asserts/publishes the staging tree AS IT STANDS

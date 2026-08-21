@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.7.0] — 2026-08-21
+
+A second Kotlin artifact: `dev.modaal.duet.services:theming`, the
+platform-free theming engine, published to the family's Maven repository on
+the same targets and from the same release tag as `telemetry`. The Swift
+products are byte-identical to 0.6.0; a Swift-only consumer re-pins with no
+code change, and a Kotlin consumer that wants only telemetry keeps the one
+coordinate.
+
+### Added — the theming engine artifact
+
+`commonMain` carries the value types a palette entry takes — `ColorToken`
+(`0xAARRGGBB` per appearance, `auto` or `fixed`) and `FontToken` (family,
+weight, size, line height, tracking, plus the `opsz`/`SOFT`/`wdth` axes a
+variable cut is pinned at) — the two role sets a resolved theme fills
+(`DuetColorRole`, Material 1.3.2's thirty-six `ColorScheme` slots;
+`DuetFontRole`, its fifteen `Typography` slots), the `DuetThemeSpec` seam and
+its `ResolvedPalette` projection, and the appearance model (`Appearance`,
+`ResolvedAppearance`, `AppearanceStore` and an in-memory default).
+
+The module compiles no Compose and names no platform colour class. An app's
+palette is common code that depends on these types, so they carry no
+platform; resolution is native and lives in the consuming app. Android
+consumers resolve the `-jvm` variant, the route the telemetry artifact's
+Android consumers already take, so no android variant is published and the
+Kotlin CI job still needs no Android SDK.
+
+Its dependency rule is narrower than the telemetry artifact's:
+`kotlinx-coroutines`, for the `StateFlow` the appearance store publishes, and
+nothing else — a consumer that links only this artifact resolves it and
+coroutines.
+
+`DuetThemeSpec` keeps the token vocabulary on the app's side: the engine sees
+roles and values, never the app's semantic-token enum, so adding, renaming or
+dropping a token needs no artifact release. Adding or dropping a *role* does,
+and is a breaking change — an app's binding is an exhaustive `when`. The
+suite pins both role counts so that a change to either is deliberate.
+
+### Changed — the publication set
+
+`kotlin/scripts/publish-maven.sh` publishes ten coordinates per release:
+`telemetry` and `theming`, each as the root publication plus `-jvm`,
+`-iosarm64`, `-iossimulatorarm64` and `-macosarm64`. The atomicity assertion
+covers all ten — a release stages every coordinate or writes none.
+
 ## [0.6.0] — 2026-08-21
 
 `DuetTelemetry` gains its Kotlin twin: `dev.modaal.duet.services:telemetry`,

@@ -25,7 +25,7 @@ on:
 
 jobs:
   maven:
-    # macOS: the telemetry module's Kotlin/Native Apple targets (ios*/
+    # macOS: the published modules' Kotlin/Native Apple targets (ios*/
     # macosArm64) only build on a macOS host — same constraint as the kotlin
     # CI job.
     runs-on: macos-15
@@ -72,5 +72,5 @@ jobs:
             echo "### maven publish — ${GITHUB_REF_NAME}"
             echo ""
             echo "- host: modaal-agent/maven → https://modaal-agent.github.io/maven"
-            echo "- coordinates: dev.modaal.duet.services:{telemetry,telemetry-jvm,telemetry-iosarm64,telemetry-iossimulatorarm64,telemetry-macosarm64}"
+            echo "- coordinates: dev.modaal.duet.services:{telemetry,theming} — each as the root publication plus -jvm, -iosarm64, -iossimulatorarm64 and -macosarm64"
           } >> "$GITHUB_STEP_SUMMARY"

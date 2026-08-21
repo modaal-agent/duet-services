@@ -32,8 +32,9 @@ dependencyResolutionManagement {
 }
 
 // The KMP half of duet-services (the Swift half lives in ../swift, SPM; the
-// twin contract's fixtures in ../contracts bind both). Maven coordinate:
-// dev.modaal.duet.services:telemetry.
+// twin contract's fixtures in ../contracts bind both). Maven coordinates:
+// dev.modaal.duet.services:{telemetry,theming}.
 rootProject.name = "duet-services"
 
 include(":telemetry")
+include(":theming")

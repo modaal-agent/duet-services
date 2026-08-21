@@ -2,8 +2,11 @@
 
 [![ci](https://github.com/modaal-agent/duet-services/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/modaal-agent/duet-services/actions/workflows/ci.yml)
 
-The services and telemetry layer for [Duet](https://github.com/modaal-agent/duet)-family
-apps; depends on `duet`. Three library products, each consumed independently:
+The services, telemetry and theming layer for [Duet](https://github.com/modaal-agent/duet)-family
+apps. Three Swift library products, each consumed independently, and two
+Kotlin Multiplatform artifacts. The Swift products and the `telemetry`
+artifact resolve `duet`; the `theming` artifact resolves `kotlinx-coroutines`
+and nothing else:
 
 | product | carries |
 | --- | --- |
@@ -40,6 +43,23 @@ dual-language app can declare an event once — verbs keep their stored
 display spelling across the boundary — and convert crossing values
 losslessly. Its dependency rule is the Swift product's: the family plus
 `kotlinx-serialization`, nothing else.
+
+A second Kotlin artifact, `dev.modaal.duet.services:theming`, carries the
+platform-free theming engine — the same targets, published from the same
+release tags. It holds the value types a palette entry takes (`ColorToken`,
+`FontToken`), the role sets a resolved theme fills (every slot on Material's
+`ColorScheme` and every slot on its `Typography`, so an app binds all of them
+and none falls back to a Material default), the `DuetThemeSpec` seam an app
+implements over its own token vocabulary, and the appearance-selection store.
+The module compiles no Compose and names no platform colour class: an app's
+palette is common code, and resolution is native — under Compose a layer in
+the app's own tree turns a `ResolvedPalette` into a `ColorScheme` and a
+`DuetThemeSpec` into a `Typography`; on Apple the app's own engine reads the
+same values. The vocabulary stays the app's: `DuetThemeSpec` is an interface
+over the app's tokens, so adding, renaming or dropping a semantic token needs
+no artifact release. Its dependency rule is narrower than the telemetry
+artifact's — `kotlinx-coroutines`, for the `StateFlow` the appearance store
+publishes, and nothing else.
 
 The contracts an adopting app works with directly:
 
@@ -145,8 +165,13 @@ repositories {
 }
 dependencies {
   api("dev.modaal.duet.services:telemetry:<version>")
+  api("dev.modaal.duet.services:theming:<version>")
 }
 ```
+
+Android consumers resolve each artifact's `-jvm` variant, which Gradle
+selects from the root publication's module metadata — the coordinates above
+are the only ones a build file names.
 
 ## Layout
 
@@ -165,9 +190,9 @@ root stays free for the other language halves.
   `scripts/generate-mocks.sh`, never hand-edited).
 - `swift/Tests/TelemetryTests` — the grammar substrate's encoding-rule pins,
   compiled against `DuetTelemetry` alone.
-- `kotlin/` — the Kotlin half: the `:telemetry` KMP module, the Gradle
-  wrapper, and `kotlin/scripts/publish-maven.sh`, the staging/atomicity/
-  immutability gate the tag-triggered publish workflow runs.
+- `kotlin/` — the Kotlin half: the `:telemetry` and `:theming` KMP modules,
+  the Gradle wrapper, and `kotlin/scripts/publish-maven.sh`, the staging/
+  atomicity/immutability gate the tag-triggered publish workflow runs.
 - `contracts/telemetry-twin/` — the twin contract's fixtures: committed
   build products of the Kotlin suite (regenerate with
   `cd kotlin && ./gradlew :telemetry:jvmTest -PregenFixtures=1`), read by
