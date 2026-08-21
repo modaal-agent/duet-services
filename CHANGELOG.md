@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.8.0] — 2026-08-21
+
+`GradientToken` in the Kotlin theming engine. Every other product in the
+release is byte-identical to 0.7.0, `DuetTheming` included: a consumer that
+links only those re-pins with no code change.
+
+### Added — `GradientToken` (`dev.modaal.duet.services:theming`)
+
+A gradient's stops per appearance, as `0xAARRGGBB` values in paint order —
+`auto(light:dark:)` for a wash that inverts with the page, `fixed(...)` for one
+that does not. It is the third value type a palette entry takes, alongside
+`ColorToken` and `FontToken`, and it closes the one shape a Kotlin palette
+could not express: a colour resolved per appearance, a typeface resolved per
+role, and a gradient written out by hand at the call site.
+
+There is no gradient role and no `DuetThemeSpec` method. The role sets exist to
+fill Material's slots — thirty-six on `ColorScheme`, fifteen on `Typography` —
+and Material carries no gradient among them, so a gradient role would map to
+nothing; an app reads a gradient from its own palette by its own semantic
+token.
+
+`DuetTheming` reaches the same value the other way. A gradient is one of its
+four asset kinds, so `Appearance<Gradient>` and
+`ThemeProvider.gradient(for:preferredAppearance:on:)` resolve it against the
+current theme and appearance exactly as they resolve a colour. This type is the
+Kotlin half of that value, for the platform whose theme has nowhere to put it.
+Direction stays the call site's on both: a stop list is the whole value, and
+the Compose layer in an app's tree turns it into whichever `Brush` the surface
+wants.
+
 ## [0.7.0] — 2026-08-21
 
 The theming layer, in both languages: a fourth Swift library product,

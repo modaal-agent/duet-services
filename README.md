@@ -54,11 +54,12 @@ losslessly. Its dependency rule is the Swift product's: the family plus
 
 A second Kotlin artifact, `dev.modaal.duet.services:theming`, carries the
 platform-free theming engine — the same targets, published from the same
-release tags. It holds the value types a palette entry takes (`ColorToken`,
-`FontToken`), the role sets a resolved theme fills (every slot on Material's
-`ColorScheme` and every slot on its `Typography`, so an app binds all of them
-and none falls back to a Material default), the `DuetThemeSpec` seam an app
-implements over its own token vocabulary, and the appearance-selection store.
+release tags. It holds the value types a palette entry takes — `ColorToken`,
+`FontToken` and `GradientToken`, each carrying its value per appearance — the
+role sets a resolved theme fills (every slot on Material's `ColorScheme` and
+every slot on its `Typography`, so an app binds all of them and none falls
+back to a Material default), the `DuetThemeSpec` seam an app implements over
+its own token vocabulary, and the appearance-selection store.
 The module compiles no Compose and names no platform colour class: an app's
 palette is common code, and resolution is native — under Compose a layer in
 the app's own tree turns a `ResolvedPalette` into a `ColorScheme` and a

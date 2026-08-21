@@ -40,6 +40,23 @@ class ThemeResolutionTest {
     assertEquals(0x80000000, token.value(ResolvedAppearance.Dark))
   }
 
+  @Test
+  fun anAutoGradientTakesItsStopsPerAppearance() {
+    val token = GradientToken.auto(
+      light = listOf(0xFFF7F7F5, 0xFFECECEA),
+      dark = listOf(0xFF141414, 0xFF1E1E1E),
+    )
+    assertEquals(listOf(0xFFF7F7F5, 0xFFECECEA), token.stops(ResolvedAppearance.Light))
+    assertEquals(listOf(0xFF141414, 0xFF1E1E1E), token.stops(ResolvedAppearance.Dark))
+  }
+
+  @Test
+  fun aFixedGradientIsAppearanceIndependent() {
+    val token = GradientToken.fixed(listOf(0xFFFFFFFF, 0xFFFBFAF7))
+    assertEquals(token.stops(ResolvedAppearance.Light), token.stops(ResolvedAppearance.Dark))
+    assertEquals(2, token.stops(ResolvedAppearance.Dark).size)
+  }
+
   /** The whole truth table: `System` is the only case that reads the platform. */
   @Test
   fun systemIsTheOnlySelectionThatReadsThePlatform() {
