@@ -98,7 +98,7 @@ generator_services_mocks() {
     --args "import=DuetAppServices"
     --args "import=DuetDiagnostics"
     --args "import=DuetShells"       # Working
-    --args "import=DuetTelemetry"    # AnalyticsConsentStoring
+    --args "import=DuetTelemetry"    # AnalyticsTracking, TrackedEvent
     --args "import=Foundation"
   )
 }

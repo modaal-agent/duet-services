@@ -19,11 +19,11 @@ import PackageDescription
 //                     outbound (URL opening, pasteboard, haptics, audio
 //                     session, permission prompts) — and their ports
 //   DuetTelemetry     the semantic-event grammar substrate — the event product
-//                     type, the tracking port, the SDK-free fan-out and no-op
-//                     sinks — plus the consent store that gates egress from
-//                     them. Its target depends on nothing: a consumer that
-//                     links only DuetTelemetry adds no third-party code to its
-//                     resolved graph beyond this package and `duet`.
+//                     type, the tracking port, and the SDK-free fan-out
+//                     worker behind it. Its target dependencies stay inside
+//                     the `duet` package: a consumer that links only
+//                     DuetTelemetry adds no third-party code to its resolved
+//                     graph beyond this package and `duet`.
 //
 // plus DuetAppServicesTestSupport, the TestSupport library carrying the one
 // hand-written double (`FakeAudioSession` — its port is iOS-only, so no
@@ -98,19 +98,23 @@ let package = Package(
       path: "swift/Sources/DuetAppServicesTestSupport",
       swiftSettings: strictConcurrency
     ),
-    // Dependency-free by contract (see the product note above): consumers
-    // gate on this emptiness, so a dependency added here is a breaking
-    // change to their dependency-audit posture, not an implementation detail.
+    // Third-party-free by contract (see the product note above): consumers
+    // gate on that, so a dependency on anything outside the `duet` package is
+    // a breaking change to their dependency-audit posture, not an
+    // implementation detail. DuetShells carries `Working`, which
+    // AnalyticsTrackingWorking refines.
     .target(
       name: "DuetTelemetry",
-      dependencies: [],
+      dependencies: [
+        .product(name: "DuetShells", package: "duet")
+      ],
       path: "swift/Sources/DuetTelemetry",
       swiftSettings: strictConcurrency
     ),
-    // Links DuetTelemetry for the generated mocks alone: the generator emits
-    // every annotated port in this package into one file in this target, and
-    // `AnalyticsConsentStoringMock` names types from DuetTelemetry. The
-    // consent store's own logical tests live in TelemetryTests.
+    // The generator emits every annotated port in this package into one file
+    // in this target, so the target links every product those ports name.
+    // The analytics fan-out's own tests live here too — they drive it through
+    // `AnalyticsTrackingWorkingMock`, which only this target can see.
     .testTarget(
       name: "ServicesTests",
       dependencies: [

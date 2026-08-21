@@ -54,10 +54,9 @@
 // input: sha256:1dc522478689f0740963a63273aaedb8389048bca239e04fb493d809c2878560 swift/Sources/DuetAppServicesTestSupport/FakeAudioSession.swift
 // input: sha256:1f6fe2dee3d92c61a18544b0bf490ab50946f38f88bbb6734b1e30da1f311f83 swift/Sources/DuetDiagnostics/Diagnostics.swift
 // input: sha256:20d3218bd37aba54d8b8f93ab6ff7a02ea1a54e44e5c05547387e2a4e705decc swift/Sources/DuetDiagnostics/DiagnosticsWorker.swift
-// input: sha256:79b817485819c8c8a86b83c8bdb49e8c217e2eaf1794ec101a261867f2f93fe8 swift/Sources/DuetTelemetry/Analytics.swift
-// input: sha256:5e54dc8f276e6b7067c600fc846e6690e1cc437a8f013b05ae172e24367f15cf swift/Sources/DuetTelemetry/AnalyticsConsentStore.swift
+// input: sha256:07d6131983556c8a8eb7e1a8ef534081da8b902ba99487c2c3b044d2d9b14dbb swift/Sources/DuetTelemetry/Analytics.swift
 // input: sha256:2c289ca578296e9c4b171d668dff979326be083e72f59d05d5eaa04a6c09abed swift/Sources/DuetTelemetry/TrackedEvent.swift
-// body: sha256:4d144a0dc92312f73f343c7e46869371c8891beac85004ed7931b62a6e7a389c
+// body: sha256:faec7634e600c1165b0cf805486c2958d3561d46ac17731445f3b9bbe2ca0a9e
 // mock-templates:end
 // Generated using Sourcery 2.3.0 — https://github.com/krzysztofzablocki/Sourcery
 // DO NOT EDIT
@@ -70,30 +69,11 @@ import DuetShells
 import DuetTelemetry
 import Foundation
 
-// MARK: - AnalyticsConsentStoring
-final class AnalyticsConsentStoringMock: AnalyticsConsentStoring {
-
-    // MARK: - Variables
-    var isEnabled: Bool = false {
-        didSet {
-            isEnabledSetCount += 1
-        }
-    }
-    var isEnabledSetCount: Int = 0
-    var isEnabledPublisher: AnyPublisher<Bool, Never> {
-        isEnabledPublisherGetCount += 1
-        if let handler = isEnabledPublisherGetHandler {
-            return handler()
-        }
-        return isEnabledPublisherSubject.eraseToAnyPublisher()
-    }
-    var isEnabledPublisherGetCount: Int = 0
-    var isEnabledPublisherGetHandler: (() -> AnyPublisher<Bool, Never>)? = nil
-    lazy var isEnabledPublisherSubject = CurrentValueSubject<Bool, Never>(false)
-}
-
 // MARK: - AnalyticsTracking
 final class AnalyticsTrackingMock: AnalyticsTracking {
+
+    // MARK: - Variables
+    var isEnabled: Bool = false
 
     // MARK: - Methods
     func identify(uid: String) {
@@ -114,16 +94,71 @@ final class AnalyticsTrackingMock: AnalyticsTracking {
     }
     var resetCallCount: Int = 0
     var resetHandler: (() -> ())? = nil
-    func setOptedOut(_ optedOut: Bool) {
-        setOptedOutCallCount += 1
-        setOptedOutArgs.append(optedOut)
-        if let __setOptedOutHandler = self.setOptedOutHandler {
-            __setOptedOutHandler(optedOut)
+    func setEnabled(_ enabled: Bool) {
+        setEnabledCallCount += 1
+        setEnabledArgs.append(enabled)
+        if let __setEnabledHandler = self.setEnabledHandler {
+            __setEnabledHandler(enabled)
         }
     }
-    var setOptedOutCallCount: Int = 0
-    var setOptedOutArgs: [Bool] = []
-    var setOptedOutHandler: ((_ optedOut: Bool) -> ())? = nil
+    var setEnabledCallCount: Int = 0
+    var setEnabledArgs: [Bool] = []
+    var setEnabledHandler: ((_ enabled: Bool) -> ())? = nil
+    func track(event: TrackedEvent) {
+        trackCallCount += 1
+        trackArgs.append(event)
+        if let __trackHandler = self.trackHandler {
+            __trackHandler(event)
+        }
+    }
+    var trackCallCount: Int = 0
+    var trackArgs: [TrackedEvent] = []
+    var trackHandler: ((_ event: TrackedEvent) -> ())? = nil
+}
+
+// MARK: - AnalyticsTrackingWorking
+final class AnalyticsTrackingWorkingMock: AnalyticsTrackingWorking, @unchecked Sendable {
+
+    // MARK: - Variables
+    var isEnabled: Bool = false
+
+    // MARK: - Methods
+    func identify(uid: String) {
+        identifyCallCount += 1
+        identifyArgs.append(uid)
+        if let __identifyHandler = self.identifyHandler {
+            __identifyHandler(uid)
+        }
+    }
+    var identifyCallCount: Int = 0
+    var identifyArgs: [String] = []
+    var identifyHandler: ((_ uid: String) -> ())? = nil
+    func reset() {
+        resetCallCount += 1
+        if let __resetHandler = self.resetHandler {
+            __resetHandler()
+        }
+    }
+    var resetCallCount: Int = 0
+    var resetHandler: (() -> ())? = nil
+    func run() async {
+        runCallCount += 1
+        if let __runHandler = self.runHandler {
+            await __runHandler()
+        }
+    }
+    var runCallCount: Int = 0
+    var runHandler: (() async -> ())? = nil
+    func setEnabled(_ enabled: Bool) {
+        setEnabledCallCount += 1
+        setEnabledArgs.append(enabled)
+        if let __setEnabledHandler = self.setEnabledHandler {
+            __setEnabledHandler(enabled)
+        }
+    }
+    var setEnabledCallCount: Int = 0
+    var setEnabledArgs: [Bool] = []
+    var setEnabledHandler: ((_ enabled: Bool) -> ())? = nil
     func track(event: TrackedEvent) {
         trackCallCount += 1
         trackArgs.append(event)

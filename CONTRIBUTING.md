@@ -31,9 +31,12 @@
   every consumer that runs one. Platform-conditional doubles stay
   hand-written in the TestSupport target, behind the port's own platform
   condition.
-- **`DuetTelemetry` declares no target dependencies.** Consumers gate on that
-  emptiness; a dependency added to the `DuetTelemetry` target is a breaking
-  change, not an implementation detail.
+- **`DuetTelemetry`'s target dependencies stay inside the `duet` package.**
+  A consumer that links only `DuetTelemetry` resolves this package and `duet`
+  and nothing else, and consumers that audit their dependency closure gate on
+  that. A third-party identity added to the `DuetTelemetry` target is a
+  breaking change, not an implementation detail; a `duet` product is not,
+  since it is already in every consumer's resolved graph.
 - **Files under `Generated/` are build products.** Change the annotated
   protocol and re-run `scripts/generate-mocks.sh`; CI fails on drift
   (`--check` validates each file's fingerprint block — a stale input, a

@@ -1,11 +1,11 @@
 # Changelog
 
-## Unreleased
+## [0.5.0] — 2026-08-20
 
-Minor. `DuetAppServices` renames one worker and its composite protocol and
-removes three types; a consumer edits the two lines its composition root
-names and takes the rest with no edit. `DuetDiagnostics` and `DuetTelemetry`
-are untouched.
+Minor, and the largest migration this package has asked for. `DuetAppServices`
+renames one worker and its composite protocol and removes five types;
+`DuetTelemetry` replaces the opt-out gate with an enabled flag the app owns,
+and stops shipping a consent store. `DuetDiagnostics` is untouched.
 
 | was | is |
 | --- | --- |
@@ -16,6 +16,17 @@ are untouched.
 | `SystemAppActions()`, `SystemAudioSession()` | `OutboundAppServicesWorker()` |
 | `DefaultHapticFeedback()` | `OutboundAppServicesWorker()`, assigned to `\.hapticFeedback` by the composition root |
 | `@Environment(\.hapticFeedback) … hapticFeedback.impactLight()` | `hapticFeedback?.impactLight()` |
+| `CompositeAnalytics(sinks:initiallyOptedOut:)` | `AnalyticsTrackingWorker(sinks:isEnabled:)` |
+| `NoOpAnalytics()` | `AnalyticsTrackingWorker(sinks: [])` |
+| `analytics.setOptedOut(true)` | `analytics.setEnabled(false)` |
+| `AnalyticsConsentStoring`, `UserDefaultsAnalyticsConsentStore` | declare and implement them in the app |
+
+Take this version with `scripts/generate-mocks.sh`, not `--check`: the
+fingerprint in a generated file records a path and a SHA-256 per scanned
+input, and this cut renames files and changes contents in both
+`DuetAppServices` and `DuetTelemetry`. Re-pin `duet` to 0.4.0 in the same
+commit — the manifest here pins it exactly, and a consumer's generation lane
+clones the pin.
 
 ### Added — `AppLifecycleObserving`, the app's own transitions as a publisher
 
@@ -47,13 +58,18 @@ generated doubles, and the system alert stays behind the seam. The push port
 covers the registration that produces the APNS device token
 `InboundAppServicesWorker` dispatches.
 
-### Added — `AnalyticsTracking` carries `sourcery: CreateMock`
+### Added — both analytics ports carry `sourcery: CreateMock`
 
-The port is unconditional and its four methods take no framework type, so a
-consumer's generation lane emits `AnalyticsTrackingMock` — a recorder with
-`trackArgs`, `identifyArgs`, `resetCallCount` and `setOptedOutArgs` — into
-its own test target. A consumer that hand-wrote a recording sink for this
-port deletes it and takes the generated double on its next regeneration.
+`AnalyticsTracking` and `AnalyticsTrackingWorking` are unconditional and name
+no framework type, so a consumer's generation lane emits
+`AnalyticsTrackingMock` and `AnalyticsTrackingWorkingMock` into its own test
+target — recorders with `trackArgs`, `identifyArgs`, `resetCallCount`,
+`setEnabledArgs` and a settable `isEnabled`. Take the worker-shaped one to
+stand in for a vendor sink under `AnalyticsTrackingWorker(sinks:)`; take the
+narrow one wherever a feature holds the port. A consumer that hand-wrote a
+recording sink deletes it and takes the generated double on its next
+regeneration. This package's own fan-out tests run on
+`AnalyticsTrackingWorkingMock`.
 
 ### Added — `OutboundAppServicesWorker`, the outbound half of the boundary
 
@@ -96,6 +112,61 @@ one home, and the isolation each call establishes is stated at the call.
 Sources are laid out by direction: `Inbound/` and `Outbound/` each hold their
 worker, and a `Protocols/` directory beside it with one port per file.
 
+### Changed — `AnalyticsTracking` carries an enabled flag, and the app owns consent
+
+The port declares `var isEnabled: Bool { get }` and
+`func setEnabled(_ enabled: Bool)` in place of `setOptedOut(_:)`. One
+polarity, and the read is a separate member from the write because the two
+answer different questions: `setEnabled(_:)` pushes a value down to every
+sink, `isEnabled` folds back what the sinks report, and with no sink wired
+the two do not agree — a `{ get set }` property would have accepted `true`
+and read back `false`.
+
+`AnalyticsConsentStoring` and `UserDefaultsAnalyticsConsentStore` are removed.
+Where the user's choice is persisted, which Settings row changes it, and
+whether an analytics worker is constructed at all are app decisions, and an
+app that wants the shipped behaviour back declares the two-member protocol and
+its `UserDefaults` implementation in its own module: the store read
+`analytics.sharing_enabled`, treated an absent key as enabled, and published
+on `UserDefaults.didChangeNotification`. Default-on is only compliant when a
+visible Settings disclosure names the vendor — ship that row with the vendor.
+
+Migration at the composition root is two lines: drop the store subscription
+that translated `isEnabled` into `setOptedOut(!$0)`, and call
+`analytics.setEnabled(_:)` from wherever the app now holds the choice.
+
+### Changed — the analytics fan-out is a worker, and holds no state
+
+`CompositeAnalytics` is `AnalyticsTrackingWorker`, conforming to the new
+`AnalyticsTrackingWorking: AnalyticsTracking, Working`. It stores
+`let sinks: [any AnalyticsTrackingWorking]` and nothing else — no gate, no
+lock, no unchecked `Sendable` conformance — so it is compiler-checked
+`Sendable` rather than asserted to be. Each sink decides whether an event
+leaves the device, which is where the vendor SDK's own opt-out switch already
+lives; `isEnabled` folds the sinks with OR, so it reports "something is
+egressing" rather than under-reporting.
+
+`run()` parks. The composition root adopts each sink worker in its own right —
+the fan-out does not bracket its sinks' lifetimes.
+
+Constructing it seeds every sink through `setEnabled(_:)` before the
+initializer returns, so no sink egresses in the window between composition and
+the first flip.
+
+A sink is now `Sendable`, which the compiler enforces: a vendor sink cannot
+hold the flag as a plain `var`. Push `setEnabled(_:)` straight to the SDK's own
+switch and read that switch back in `isEnabled`, or hold the flag in an
+`OSAllocatedUnfairLock<Bool>` where an SDK exposes no readable one.
+
+### Changed — the `DuetTelemetry` target takes `DuetShells`
+
+`Working` is declared there, and `AnalyticsTrackingWorking` refines it. The
+contract consumers gate on is unchanged in substance and restated in
+`CONTRIBUTING.md` as what it always guaranteed: `DuetTelemetry`'s target
+dependencies stay inside the `duet` package, so a consumer linking only
+`DuetTelemetry` resolves this package and `duet` and nothing else. No new
+package enters any consumer's graph — `duet` is already in all of them.
+
 ### Changed — the framework pin moves to `duet` 0.4.0
 
 `Relay.bindSink(owner:)` is the surface the bump adds; `duet` 0.4.0 changes
@@ -103,6 +174,12 @@ no existing declaration, so the package compiles and its 26 tests pass with
 no source edit. The generated mocks re-pin because the fingerprint records a
 SHA-256 per scanned input and `Relay.swift` moved — `ServicesMocks.swift`
 carries the new hash and no other line.
+
+### Removed — `NoOpAnalytics`
+
+`AnalyticsTrackingWorker(sinks: [])` is the same behaviour: every call is
+accepted and dropped, and `isEnabled` reads `false`. Wire that in a
+composition root that has no vendor yet.
 
 ## [0.4.0] — 2026-08-20
 
