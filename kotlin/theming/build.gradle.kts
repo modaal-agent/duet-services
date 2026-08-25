@@ -27,7 +27,7 @@ plugins {
 // consumer that links only this artifact resolves this artifact and
 // coroutines.
 kotlin {
-  jvmToolchain(21)
+  jvmToolchain(25)
 
   jvm()
   macosArm64()

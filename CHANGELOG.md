@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.9.0] — 2026-08-25
+
+Two pins move together: the Duet framework to `0.5.0` on both halves, and the
+build toolchain to Kotlin 2.4.10, Gradle 9.7.1 and JDK 25. No API changes, no
+behavior changes and no byte-format changes in any product.
+
+### Changed — the framework pin moves to `0.5.0`
+
+`exact: "0.5.0"` in `Package.swift` and `duet = "0.5.0"` in the Kotlin
+catalog, kept in step as one commit. Duet `0.5.0` is its own toolchain move —
+its Swift products are byte-identical to `0.4.0` — so nothing this package
+exposes changes shape.
+
+SwiftPM version-solves an app tree and its packages together, so a consumer
+taking `0.9.0` must move its own Duet pin to `0.5.0` in the same change. A tree
+left on `exact: "0.4.0"` fails to resolve rather than building against the
+older framework.
+
+### Changed — the toolchain: Kotlin 2.4.10, Gradle 9.7.1, JDK 25
+
+`kotlin` 2.4.10, `coroutines` 1.11.0, `serialization` 1.11.0, both modules'
+`jvmToolchain(25)`, and the wrapper at Gradle 9.7.1 carrying
+`distributionSha256Sum`, so the distribution is verified before it is
+unpacked.
+
+**Your build JVM must be a 25.** The published `-jvm` variants are compiled to
+class-file major 69, which a Java 21 JVM cannot read.
+
+**Your Kotlin must be 2.4 or newer.** The Apple `.klib` artifacts carry the
+2.4 ABI and a 2.3 compiler will not consume them.
+
+Verified before the cut: the Kotlin lane clean-built with dependencies
+refreshed (58 tasks, zero warnings) resolving the published
+`dev.modaal.duet:kernel:0.5.0` and compiling all three Apple targets,
+`swift test` (27 tests), and `scripts/generate-mocks.sh --check`.
+
 ## [0.8.0] — 2026-08-21
 
 `GradientToken` in the Kotlin theming engine. Every other product in the

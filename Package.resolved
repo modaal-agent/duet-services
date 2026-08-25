@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/modaal-agent/duet.git",
       "state" : {
-        "revision" : "2894f29cc43d7ea874b04f49fc4fe60af81755ff",
-        "version" : "0.4.0"
+        "revision" : "7167f942858fe363c63862d0237b3bed70a851d6",
+        "version" : "0.5.0"
       }
     }
   ],

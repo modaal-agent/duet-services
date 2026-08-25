@@ -25,7 +25,7 @@ plugins {
 // the family and nothing else, and consumers that audit their dependency
 // closure gate on that.
 kotlin {
-  jvmToolchain(21)
+  jvmToolchain(25)
 
   jvm()
   macosArm64()

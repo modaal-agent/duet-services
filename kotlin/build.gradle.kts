@@ -22,7 +22,7 @@ allprojects {
   // (the adopter repos gate mavenLocal behind a `duetMavenLocal=1` property).
   // It tracks the current release line — a cut moves it in the commit that
   // gets tagged, but nothing published depends on it.
-  version = providers.gradleProperty("publishVersion").getOrElse("0.8.0-SNAPSHOT")
+  version = providers.gradleProperty("publishVersion").getOrElse("0.9.0-SNAPSHOT")
 }
 
 subprojects {
