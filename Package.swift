@@ -76,7 +76,7 @@ let package = Package(
     // The duet framework, pinned EXACTLY: pre-1.0 minors are breaking by
     // family convention, so an upgrade is a deliberate re-pin commit rather
     // than a floating range.
-    .package(url: "https://github.com/modaal-agent/duet.git", exact: "0.5.0")
+    .package(url: "https://github.com/modaal-agent/duet.git", exact: "0.6.0")
   ],
   targets: [
     .target(

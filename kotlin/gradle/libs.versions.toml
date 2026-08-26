@@ -5,7 +5,7 @@ serialization = "1.11.0"
 # The duet framework release this half builds against — the same release line
 # the Swift manifest pins (`exact:` in ../Package.swift). Keep the two in
 # step: a framework re-pin is one commit moving both.
-duet = "0.5.0"
+duet = "0.6.0"
 
 [libraries]
 duet-kernel = { module = "dev.modaal.duet:kernel", version.ref = "duet" }

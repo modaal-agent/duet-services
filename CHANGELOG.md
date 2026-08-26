@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.10.0] — 2026-08-26
+
+The Duet framework pin moves to `0.6.0` on both halves. No API changes, no
+behavior changes and no byte-format changes in any product here.
+
+### Changed — the framework pin moves to `0.6.0`
+
+`exact: "0.6.0"` in `Package.swift` and `duet = "0.6.0"` in the Kotlin
+catalog, kept in step as one commit. Duet `0.6.0` adds `AnyActionHandler` to
+`DuetShells` and drops `Relay`'s `Sendable` conformance. Neither reaches this
+package's surface: nothing here holds a `Relay`, and every product compiled
+against the new framework unchanged — this cut carries no source edit.
+
+SwiftPM version-solves an app tree and its packages together, so a consumer
+taking `0.10.0` must move its own Duet pin to `0.6.0` in the same change. A
+tree left on `exact: "0.5.0"` fails to resolve rather than building against
+the older framework.
+
+The framework's `Relay` change is the one item to read before moving that pin:
+a relay stored in a `Sendable` type, captured by a `@Sendable` closure, or
+passed to another actor stops compiling, and the fix that keeps the check is
+`@MainActor` on the holding type. Duet `0.6.0`'s changelog states the rule.
+
+### Changed — the generated mock fingerprint re-records the framework sources
+
+`swift/Tests/ServicesTests/Generated/ServicesMocks.swift` carries a
+path-and-hash line per scanned source, so the framework gaining a file makes
+the committed output stale by design. Regenerated with
+`scripts/generate-mocks.sh`: the fingerprint gains `AnyActionHandler.swift`
+and re-records `Relay.swift`, and the generated bodies are unchanged — 17
+types, 602 lines, same body hash.
+
+Verified before the cut: the Kotlin lane clean-built with dependencies
+refreshed (58 tasks, zero warnings) resolving the published
+`dev.modaal.duet:kernel:0.6.0` and compiling all three Apple targets,
+`swift test` (27 tests), and `scripts/generate-mocks.sh --check`.
+
 ## [0.9.0] — 2026-08-25
 
 Two pins move together: the Duet framework to `0.5.0` on both halves, and the
