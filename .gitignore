@@ -5,3 +5,8 @@ xcuserdata/
 .gradle/
 .kotlin/
 build/
+
+# A library package: SwiftPM honors only the ROOT package's resolved file,
+# and the one dependency here is an `exact:` pin with no transitives, so a
+# committed lockfile records nothing the manifest does not.
+Package.resolved

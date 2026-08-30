@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.11.0] — 2026-08-30
+
+The Duet framework pin moves to `0.7.0` on both halves. No API changes, no
+behavior changes and no byte-format changes in any product here.
+
+### Changed — the framework pin moves to `0.7.0`
+
+`exact: "0.7.0"` in `Package.swift` and `duet = "0.7.0"` in the Kotlin
+catalog, kept in step as one commit. Duet `0.7.0` makes the kernel's `Store` a
+`HostedObservation`, so `StoreHost.adopt(_:)` takes a store. Nothing here
+holds a kernel store or declares that conformance, so every product compiled
+against the new framework unchanged — this cut carries no source edit.
+
+SwiftPM version-solves an app tree and its packages together, so a consumer
+taking `0.11.0` must move its own Duet pin to `0.7.0` in the same change. A
+tree left on `exact: "0.6.0"` fails to resolve rather than building against
+the older framework. The reverse holds too, and is the reason this release
+exists: a tree cannot move to Duet `0.7.0` while pinning `0.10.0` here.
+
+One item to read before moving that pin, from the framework's own changelog: a
+module declaring its own `extension Store: HostedObservation`, or its own
+`cancel()` on `Store`, now collides with the framework's and deletes the local
+declaration.
+
+### Changed — the generated mock fingerprint re-records `StoreHost.swift`
+
+`swift/Tests/ServicesTests/Generated/ServicesMocks.swift` carries a
+path-and-hash line per scanned source, so a framework file changing makes the
+committed output stale by design. Regenerated with
+`scripts/generate-mocks.sh`: one input hash moves, and the generated bodies are
+unchanged — 17 types, 602 lines, same body hash.
+
+### Changed — `Package.resolved` is no longer tracked
+
+This is a library package, and SwiftPM honors only the root package's resolved
+file, so a consumer resolving this one never reads it. The single dependency is
+an `exact:` pin whose own package declares no external dependencies, which
+leaves nothing for a lockfile to record that the manifest does not already fix.
+It is in `.gitignore`; contributors resolve locally as before.
+
+Verified before the cut: the Kotlin lane clean-built with dependencies
+refreshed, `swift build`, `swift test` (27 tests), and
+`scripts/generate-mocks.sh --check`.
+
 ## [0.10.0] — 2026-08-26
 
 The Duet framework pin moves to `0.6.0` on both halves. No API changes, no
