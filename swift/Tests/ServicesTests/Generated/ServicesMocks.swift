@@ -70,7 +70,7 @@
 // input: sha256:cbd236f47ab53a593b11a8e0da5bb0c77d362e7d29b612858573e524ee32b459 swift/Sources/DuetTheming/Theme/ThemeDefaulting.swift
 // input: sha256:4a703e2a9bbda3b12261649c8f9ae05358c18c0c4c055630ee5de156f10adcdd swift/Sources/DuetTheming/Theme/Themeable.swift
 // input: sha256:7b81b19ef7777b50adf7c04356f403216d01f55b35955aa80a923d0bdac8b29a swift/Sources/DuetTheming/Theme/Themed.swift
-// input: sha256:cbadafce5ee9ff307d1e42362cc6a0fd0023d7d373396d77e392013a1d7c527a swift/Sources/DuetTheming/ThemeEnvironment.swift
+// input: sha256:4ffeddbafdae47556c8707a44ff14dbb35ee62bd46064c0b5a5c9c3b4e962b97 swift/Sources/DuetTheming/ThemeEnvironment.swift
 // input: sha256:abec8ac31edc61c83ebbd493c0dd25297137de8ce2b20654b62b3cb3eb662a07 swift/Sources/DuetTheming/ThemeProvider/ThemePersistentStorage.swift
 // input: sha256:2b50c937e5a83ff063ff5fb39e59d703854c9ef1e18cf739dfd640c050dadee5 swift/Sources/DuetTheming/ThemeProvider/ThemeProvider.swift
 // body: sha256:faec7634e600c1165b0cf805486c2958d3561d46ac17731445f3b9bbe2ca0a9e
