@@ -210,8 +210,10 @@ root takes the provider: subclass `ThemedHostingController` and hand it one,
 or wrap a single tree in `ThemeScope(provider) { ... }`. A view then reads
 `@Environment(\.theme)` and calls `theme.color(for: ColorAsset.accent)`; no
 view takes a theming parameter, however deeply nested, and no view model
-carries one on its behalf. Set hosted content through `themedRootView` —
-assigning `rootView` is a compile error by design.
+carries one on its behalf. A subclass restates `init(coder:)` —
+`UIHostingController` declares it `required`, so every subclass provides
+one. Set hosted content through `themedRootView` — assigning `rootView` is a
+compile error by design.
 
 ```swift
 let themeProvider = ThemeProvider(

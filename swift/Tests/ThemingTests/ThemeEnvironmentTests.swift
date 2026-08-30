@@ -60,6 +60,21 @@ private struct RecordingRoot: View {
   var body: some View { VStack { RecordingLeaf(recorder: recorder) } }
 }
 
+/// The documented subclass, written exactly as `ThemeEnvironment.swift`'s
+/// example writes it. It exists so the example is compiled: a subclass that
+/// declares only its own initializer does not build, because
+/// `UIHostingController.init(coder:)` is `required` and propagates down every
+/// subclass in the chain.
+private final class RecordingViewController: ThemedHostingController<RecordingRoot> {
+  init(theme: ThemeProviding, recorder: ThemeRecorder) {
+    super.init(theme: theme, rootView: RecordingRoot(recorder: recorder))
+  }
+
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+}
+
 /// The contract the theming layer publishes on: the provider handed to a
 /// hosting root reaches every view in the tree it hosts, however deep, and a
 /// view declares nothing to receive it.
@@ -108,6 +123,18 @@ final class ThemeEnvironmentTests: XCTestCase {
     mount(ThemedHostingController(
       theme: provider,
       rootView: RecordingRoot(recorder: recorder)))
+
+    XCTAssertEqual(recorder.resolved, ObjectIdentifier(provider))
+  }
+
+  /// The subclass route the documentation prescribes, mounted and rendered:
+  /// a subclass publishes to its tree exactly as the direct construction
+  /// above does.
+  func testASubclassPublishesToItsTree() {
+    let recorder = ThemeRecorder()
+    let provider = makeProvider()
+
+    mount(RecordingViewController(theme: provider, recorder: recorder))
 
     XCTAssertEqual(recorder.resolved, ObjectIdentifier(provider))
   }

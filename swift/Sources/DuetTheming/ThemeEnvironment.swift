@@ -13,12 +13,18 @@ import UIKit
 //
 // A SwiftUI environment value does not cross a UIKit boundary, so the theme is
 // published once per SwiftUI tree — at the `UIHostingController` that roots it.
-// Subclass `ThemedHostingController` and hand it the provider:
+// Subclass `ThemedHostingController` and hand it the provider. The subclass
+// restates `init(coder:)`: `UIHostingController` declares it `required`, so
+// every subclass in the chain provides one or the file does not compile.
 //
 // ```swift
 // final class SomeViewController: ThemedHostingController<SomeView> {
 //   init(theme: ThemeProviding, viewState: SomeViewState) {
 //     super.init(theme: theme, rootView: SomeView(viewState: viewState))
+//   }
+//
+//   required init?(coder: NSCoder) {
+//     fatalError("init(coder:) has not been implemented")
 //   }
 // }
 // ```
@@ -127,12 +133,17 @@ public struct ThemedRootView<Content: View>: View {
 /// provider passed here.
 ///
 /// The generic parameter is the view being hosted — the wrapper stays out of
-/// the subclass's type signature:
+/// the subclass's type signature. `init(coder:)` below is `required`, so the
+/// subclass restates it:
 ///
 /// ```swift
 /// final class SomeViewController: ThemedHostingController<SomeView> {
 ///   init(theme: ThemeProviding, viewState: SomeViewState) {
 ///     super.init(theme: theme, rootView: SomeView(viewState: viewState))
+///   }
+///
+///   required init?(coder: NSCoder) {
+///     fatalError("init(coder:) has not been implemented")
 ///   }
 /// }
 /// ```

@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.11.1] — 2026-08-30
+
+A documentation fix in `DuetTheming` and the test that keeps it correct. No
+API changes, no behavior changes, no byte-format changes.
+
+### Fixed — the `ThemedHostingController` subclass example compiles
+
+`UIHostingController.init(coder:)` is `required`, so it propagates to every
+subclass in the chain. Both examples in `ThemeEnvironment.swift` — the file's
+header and the class's own doc comment — declared only the subclass's own
+initializer, which does not build:
+
+```
+'required' initializer 'init(coder:)' must be provided by subclass of
+'ThemedHostingController<Content>'
+```
+
+Both examples and the README's hosting-root paragraph state the rule and show
+the restated initializer. An app that took any of them as written met the
+error at its first hosted view.
+
+### Added — the documented subclass is compiled by the suite
+
+Every theming test constructed `ThemedHostingController` directly, so the
+subclass route the documentation prescribes was never built. `ThemingTests`
+gains `RecordingViewController`, written exactly as the examples write it,
+mounted and asserted by `testASubclassPublishesToItsTree`: the shape they
+prescribe is a build product of the iOS lane rather than prose.
+
 ## [0.11.0] — 2026-08-30
 
 The Duet framework pin moves to `0.7.0` on both halves. No API changes, no
