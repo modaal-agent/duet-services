@@ -7,7 +7,32 @@ apps. Four Swift library products, each consumed independently, and two
 Kotlin Multiplatform artifacts. Three of the Swift products and the
 `telemetry` artifact resolve `duet`; `DuetTheming` declares no dependencies at
 all, and the `theming` artifact resolves `kotlinx-coroutines` and nothing
-else:
+else.
+
+> **Status: pre-release, current line 0.11.1**, built against Duet `0.7.0` on
+> both halves (`exact:` in `Package.swift`, `duet = "0.7.0"` in the Kotlin
+> version catalog — moved together, in one commit, after each framework
+> release). Pre-1.0 minors are breaking by family convention, so pin exactly
+> and move this pin and the framework pin in one change: SwiftPM version-solves
+> an app tree and every package it reaches as one graph, and two different
+> framework tags fail to resolve before anything compiles.
+> [CHANGELOG.md](CHANGELOG.md) states which framework tag each release carries.
+
+The CI matrix (each job writes its toolchain and verdict to the run's job
+summary):
+
+| lane | toolchain | proves |
+| --- | --- | --- |
+| `swift` · macos-26 | Xcode 26.6 (Swift 6.3.3) | the host lane: `swift test` on the GA floor |
+| `swift` · xcode-27 | Xcode 27 beta (Swift 6.4) | the same suites on the newest proven line |
+| `kotlin` | Temurin 25 · Gradle 9.7.1 · Kotlin 2.4.10 | `./gradlew build` — both KMP modules, every target, and the twin-contract fixtures |
+| `ios` | macos-26, a simulator destination | `scripts/test-ios.sh`: every `#if os(iOS)` file type-checked and the theming suite run under a `UIWindow` |
+| `codegen` | macos-26 | `scripts/generate-mocks.sh --check`: the committed generated mocks match their fingerprint block |
+
+A release tag additionally publishes the two Kotlin artifacts to the family's
+Maven repository with the version derived from the tag.
+
+The products:
 
 | product | carries |
 | --- | --- |
@@ -284,9 +309,15 @@ root stays free for the other language halves.
   mount real SwiftUI trees under a `UIWindow`, so they need a simulator host —
   `scripts/test-ios.sh` builds every target for the simulator and runs them,
   and CI's `ios` job runs that same script.
-- `kotlin/` — the Kotlin half: the `:telemetry` and `:theming` KMP modules,
-  the Gradle wrapper, and `kotlin/scripts/publish-maven.sh`, the staging/
+- `kotlin/` — the Kotlin half: the `:telemetry` and `:theming` KMP modules
+  (targets `jvm`, `iosArm64`, `iosSimulatorArm64`, `macosArm64`), the Gradle
+  wrapper, and `kotlin/scripts/publish-maven.sh`, the staging/
   atomicity/immutability gate the tag-triggered publish workflow runs.
+- `scripts/` — `generate-mocks.sh` (the mock-generation lane and its
+  `--check`), `test-ios.sh` (the simulator lane), and
+  `install-swift-tools.sh` with `scripts/.mintfile` (the pinned Swift build
+  tools installed from their release binaries instead of compiled by Mint;
+  not on the CI path).
 - `contracts/telemetry-twin/` — the twin contract's fixtures: committed
   build products of the Kotlin suite (regenerate with
   `cd kotlin && ./gradlew :telemetry:jvmTest -PregenFixtures=1`), read by
