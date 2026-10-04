@@ -9,7 +9,7 @@ Kotlin Multiplatform artifacts. Three of the Swift products and the
 all, and the `theming` artifact resolves `kotlinx-coroutines` and nothing
 else.
 
-> **Status: pre-release, current line 0.11.1**, built against Duet `0.7.0` on
+> **Status: pre-release, current line 0.12.0**, built against Duet `0.7.0` on
 > both halves (`exact:` in `Package.swift`, `duet = "0.7.0"` in the Kotlin
 > version catalog — moved together, in one commit, after each framework
 > release). Pre-1.0 minors are breaking by family convention, so pin exactly

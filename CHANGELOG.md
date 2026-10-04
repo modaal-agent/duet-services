@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.12.0] — 2026-10-04
+
+### Changed — `FontFamilyToken` is an interface, and an app can declare its own families
+
+`FontFamilyToken` (Kotlin, `dev.modaal.duet.services:theming`) is an
+interface. The engine's three families are `DuetFontFamily.Serif`, `.Sans`
+and `.Mono`, and `FontFamilyToken.Serif`, `.Sans` and `.Mono` name them, so
+a palette that writes `FontToken(FontFamilyToken.Sans, …)` compiles
+unchanged. An app that declares families of its own implements the interface
+with an enum of them and passes its entries to `FontToken`.
+
+A `when` over `token.family` is no longer exhaustive over three entries. A
+resolver switches over the enum the app's tokens use: `when (token.family as
+DuetFontFamily)` for the engine's three, or over the app's own enum.
+
+The Swift product is unchanged: an app's `FontFamilyToken` is its own enum.
+
 ## [0.11.1] — 2026-08-30
 
 A documentation fix in `DuetTheming` and the test that keeps it correct. No

@@ -7,8 +7,31 @@ package dev.modaal.duet.services.theming
  * Which face a token is set in. The token names a family, never a file: font
  * resources are app-owned (`R.font.*` under Compose, a bundle registration on
  * Apple), and the app hands the resolution layer a resolver.
+ *
+ * The engine names three families, [Serif], [Sans] and [Mono] — the entries
+ * of [DuetFontFamily]. An app that declares families of its own (a display
+ * face beside the system faces) implements this interface with an enum of
+ * them, and its resolver switches over that enum, so a family the app adds is
+ * a compile error there until it is mapped to a face.
  */
-enum class FontFamilyToken {
+interface FontFamilyToken {
+  companion object {
+    /** The engine's serif family. */
+    val Serif: FontFamilyToken get() = DuetFontFamily.Serif
+
+    /** The engine's sans-serif family. */
+    val Sans: FontFamilyToken get() = DuetFontFamily.Sans
+
+    /** The engine's monospaced family. */
+    val Mono: FontFamilyToken get() = DuetFontFamily.Mono
+  }
+}
+
+/**
+ * The engine's three families. A resolver for an app whose tokens use only
+ * these switches over this enum: `when (token.family as DuetFontFamily)`.
+ */
+enum class DuetFontFamily : FontFamilyToken {
   Serif,
   Sans,
   Mono,
