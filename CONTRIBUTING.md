@@ -75,5 +75,12 @@
   and the publish workflow derives the Maven version from the same tag
   (`-PpublishVersion` — the `-SNAPSHOT` literal in `kotlin/build.gradle.kts`
   is the mavenLocal development default, never published).
+- **A release that renames or removes a product, an artifact or a symbol
+  the duet agent skill names updates the skill.** `skills/duet/` in the duet
+  repository names this package's Swift products, its Kotlin artifacts and
+  some of their types, and duet's `skill` workflow checks them against this
+  repository's newest tag every Monday (`scripts/check-skill.sh`, checks C7
+  and C12). Open the matching duet pull request with the release; the weekly
+  run fails until it merges.
 - **Licensing**: MIT, inbound = outbound; submitting a PR means your
   contribution is licensed under the [MIT License](LICENSE).

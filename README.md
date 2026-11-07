@@ -287,6 +287,16 @@ Android consumers resolve each artifact's `-jvm` variant, which Gradle
 selects from the root publication's module metadata — the coordinates above
 are the only ones a build file names.
 
+## Agent skill
+
+The duet repository's agent skill,
+[`skills/duet/`](https://github.com/modaal-agent/duet/tree/main/skills/duet),
+teaches a coding agent how an app adopts these products at its composition
+root, alongside the framework and the `duet` CLI. Install it in Claude Code
+with `/plugin marketplace add modaal-agent/duet`, then
+`/plugin install duet-ios-android@modaal-duet`, or in another agent with
+`npx skills add modaal-agent/duet`.
+
 ## Layout
 
 The Swift half lives under `swift/`, with the manifest at the repository
